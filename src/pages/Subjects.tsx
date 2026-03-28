@@ -56,7 +56,11 @@ export default function Subjects() {
 
   const handleAddTopic = () => {
     if (!addTopicSubjectId || !newTopicName.trim()) return;
-    addTopic(addTopicSubjectId, newTopicName.trim());
+    
+    // Divide o texto por quebras de linha e adiciona cada linha não vazia como um novo assunto
+    const lines = newTopicName.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+    lines.forEach(line => addTopic(addTopicSubjectId, line));
+
     setNewTopicName('');
     setAddTopicSubjectId(null);
   };
@@ -262,6 +266,9 @@ export default function Subjects() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Novo assunto</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground mb-1">
+              Cole ou digite um assunto por linha. Cada linha será transformada num assunto isolado.
+            </p>
             <Textarea 
               placeholder="Digite o nome do assunto..." 
               value={newTopicName} 
