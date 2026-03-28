@@ -12,6 +12,7 @@ interface StudyContextType {
   subjects: Subject[];
   scheduleEntries: ScheduleEntry[];
   studyLogs: StudyLog[];
+  exams: Exam[];
   addSubject: (name: string) => void;
   removeSubject: (id: string) => void;
   addTopic: (subjectId: string, name: string) => void;
@@ -22,6 +23,9 @@ interface StudyContextType {
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
   getTopicStats: (topicId: string) => TopicStats;
   getSubjectStats: (subjectId: string) => TopicStats;
+  addExam: (exam: Omit<Exam, 'id'>) => void;
+  removeExam: (id: string) => void;
+  updateExam: (id: string, exam: Partial<Omit<Exam, 'id'>>) => void;
 }
 
 const StudyContext = createContext<StudyContextType | null>(null);
