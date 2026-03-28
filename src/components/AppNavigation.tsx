@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarDays, BookOpen, BarChart3, Sun, Moon, LogOut } from 'lucide-react';
+import { CalendarDays, BookOpen, BarChart3, Sun, Moon, LogOut, RotateCw } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ export default function AppNavigation() {
       <div className="container flex items-center h-14 gap-1">
         <span className="font-bold text-lg text-primary mr-6 tracking-tight">EstudosMagis</span>
         <NavItem to="/" active={pathname === '/'} icon={<CalendarDays className="h-4 w-4" />} label="Semana" />
+        <NavItem to="/ciclo" active={pathname === '/ciclo'} icon={<RotateCw className="h-4 w-4" />} label="Ciclo" />
         <NavItem to="/materias" active={pathname === '/materias'} icon={<BookOpen className="h-4 w-4" />} label="Matérias" />
         <NavItem to="/dashboard" active={pathname === '/dashboard'} icon={<BarChart3 className="h-4 w-4" />} label="Dashboard" />
         <div className="ml-auto flex items-center gap-1">

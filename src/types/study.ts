@@ -19,6 +19,13 @@ export interface ScheduleEntry {
   date?: string; // YYYY-MM-DD for one-time entries
 }
 
+export interface CycleEntry {
+  id: string;
+  subjectId: string;
+  plannedMinutes: number;
+  order: number;
+}
+
 export interface DailyProgress {
   id: string;
   entryId: string;

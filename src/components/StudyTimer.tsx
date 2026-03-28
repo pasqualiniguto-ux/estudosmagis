@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Pause, Square } from 'lucide-react';
 import { useStudy } from '@/contexts/StudyContext';
-import { ScheduleEntry } from '@/types/study';
+import { ScheduleEntry, CycleEntry } from '@/types/study';
 
 interface Props {
-  entry: ScheduleEntry;
+  entry: ScheduleEntry | CycleEntry;
   date: string;
   open: boolean;
   onClose: () => void;
