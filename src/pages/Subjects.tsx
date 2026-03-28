@@ -56,28 +56,7 @@ export default function Subjects() {
 
   const handleAddTopic = () => {
     if (!addTopicSubjectId || !newTopicName.trim()) return;
-    
-    let str = newTopicName.trim().replace(/[\n;]/g, '|||');
-    str = str.replace(/\.\s+(?=[A-Z0-9])/ig, '|||');
-    
-    const rawChunks = str.split('|||');
-    
-    const results = rawChunks.map(c => {
-      let clean = c.trim();
-      clean = clean.replace(/^[\d\.]+\s*-?\s*/, ''); 
-      clean = clean.replace(/^[a-zA-Z][\)\.-]\s*/, ''); 
-      clean = clean.replace(/\.$/, '');
-      return clean.trim();
-    }).filter(c => c.length > 2);
-
-    const uniqueTopics = Array.from(new Set(results));
-    
-    if (uniqueTopics.length === 0 && newTopicName.trim().length > 0) {
-      addTopic(addTopicSubjectId, newTopicName.trim());
-    } else {
-      uniqueTopics.forEach(t => addTopic(addTopicSubjectId, t));
-    }
-
+    addTopic(addTopicSubjectId, newTopicName.trim());
     setNewTopicName('');
     setAddTopicSubjectId(null);
   };
@@ -281,18 +260,16 @@ export default function Subjects() {
       {/* Add Topic Dialog */}
       <Dialog open={!!addTopicSubjectId} onOpenChange={o => { if (!o) setAddTopicSubjectId(null); }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Inserir assuntos em massa</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Novo assunto</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Cole o texto do Edital aqui. O sistema vai extrair os tópicos separando-os pelas quebras de linha, pontos ou ponto e vírgula, e também removerá numerações como "1.", "1.1." automaticamente.
-            </p>
             <Textarea 
-              placeholder="Exemplo:&#10;1. Direito Civil.&#10;2. Direito Penal..." 
+              placeholder="Digite o nome do assunto..." 
               value={newTopicName} 
               onChange={e => setNewTopicName(e.target.value)} 
               className="min-h-[160px]"
+              autoFocus
             />
-            <Button className="w-full" onClick={handleAddTopic} disabled={!newTopicName.trim()}>Extrair e Adicionar</Button>
+            <Button className="w-full" onClick={handleAddTopic} disabled={!newTopicName.trim()}>Adicionar</Button>
           </div>
         </DialogContent>
       </Dialog>
