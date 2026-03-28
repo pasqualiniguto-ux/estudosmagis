@@ -29,6 +29,7 @@ export default function ExamReminders() {
       date: format(date, 'yyyy-MM-dd'),
       subjectIds: selectedSubjects,
       notes,
+      url: url.trim() || undefined,
     });
     resetForm();
     setOpen(false);
