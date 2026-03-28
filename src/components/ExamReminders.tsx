@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Plus, Trash2, BookOpen, Clock } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink } from 'lucide-react';
 
 export default function ExamReminders() {
   const { subjects, exams, addExam, removeExam, updateExam } = useStudy();
@@ -19,6 +19,7 @@ export default function ExamReminders() {
   const [date, setDate] = useState<Date | undefined>();
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [url, setUrl] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleAdd = () => {
@@ -28,6 +29,7 @@ export default function ExamReminders() {
       date: format(date, 'yyyy-MM-dd'),
       subjectIds: selectedSubjects,
       notes,
+      url: url.trim() || undefined,
     });
     resetForm();
     setOpen(false);
@@ -38,6 +40,7 @@ export default function ExamReminders() {
     setDate(undefined);
     setSelectedSubjects([]);
     setNotes('');
+    setUrl('');
   };
 
   const toggleSubject = (id: string) => {
@@ -132,6 +135,19 @@ export default function ExamReminders() {
                 {isExpanded && exam.notes && (
                   <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-2">{exam.notes}</p>
                 )}
+
+                {isExpanded && exam.url && (
+                  <a
+                    href={exam.url.startsWith('http') ? exam.url : `https://${exam.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Acessar edital / banca
+                  </a>
+                )}
               </div>
             );
           })}
@@ -194,6 +210,11 @@ export default function ExamReminders() {
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Observações (opcional)</label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anotações sobre a prova..." rows={3} />
+            </div>
+
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Link do edital ou banca (opcional)</label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.exemplo.com/edital" />
             </div>
 
             <Button className="w-full" onClick={handleAdd} disabled={!name || !date}>Salvar</Button>

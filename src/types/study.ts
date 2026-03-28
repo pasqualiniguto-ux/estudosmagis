@@ -35,4 +35,5 @@ export interface Exam {
   date: string; // ISO date string YYYY-MM-DD
   subjectIds: string[];
   notes: string;
+  url?: string;
 }
