@@ -12,7 +12,7 @@ export default function AppNavigation() {
   return (
     <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container flex items-center h-14 gap-1">
-        <span className="font-bold text-lg text-primary mr-6 tracking-tight">EstudoApp</span>
+        <span className="font-bold text-lg text-primary mr-6 tracking-tight">EstudosMagis</span>
         <NavItem to="/" active={pathname === '/'} icon={<CalendarDays className="h-4 w-4" />} label="Semana" />
         <NavItem to="/materias" active={pathname === '/materias'} icon={<BookOpen className="h-4 w-4" />} label="Matérias" />
         <NavItem to="/dashboard" active={pathname === '/dashboard'} icon={<BarChart3 className="h-4 w-4" />} label="Dashboard" />
