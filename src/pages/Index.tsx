@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AppNavigation from '@/components/AppNavigation';
 import StudyTimer from '@/components/StudyTimer';
+import ExamReminders from '@/components/ExamReminders';
 import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry } from '@/types/study';
 import { Button } from '@/components/ui/button';
@@ -167,6 +168,8 @@ export default function Index() {
             );
           })}
         </div>
+
+        <ExamReminders />
       </main>
 
       {/* Timer Dialog */}

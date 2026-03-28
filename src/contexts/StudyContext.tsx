@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Subject, Topic, ScheduleEntry, StudyLog } from '@/types/study';
+import { Subject, Topic, ScheduleEntry, StudyLog, Exam } from '@/types/study';
 
 interface TopicStats {
   total: number;
@@ -12,6 +12,7 @@ interface StudyContextType {
   subjects: Subject[];
   scheduleEntries: ScheduleEntry[];
   studyLogs: StudyLog[];
+  exams: Exam[];
   addSubject: (name: string) => void;
   removeSubject: (id: string) => void;
   addTopic: (subjectId: string, name: string) => void;
@@ -22,6 +23,9 @@ interface StudyContextType {
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
   getTopicStats: (topicId: string) => TopicStats;
   getSubjectStats: (subjectId: string) => TopicStats;
+  addExam: (exam: Omit<Exam, 'id'>) => void;
+  removeExam: (id: string) => void;
+  updateExam: (id: string, exam: Partial<Omit<Exam, 'id'>>) => void;
 }
 
 const StudyContext = createContext<StudyContextType | null>(null);
@@ -43,10 +47,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [subjects, setSubjects] = useState<Subject[]>(() => loadStorage('study_subjects', []));
   const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule', []));
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
+  const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
 
   useEffect(() => saveStorage('study_subjects', subjects), [subjects]);
   useEffect(() => saveStorage('study_schedule', scheduleEntries), [scheduleEntries]);
   useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
+  useEffect(() => saveStorage('study_exams', exams), [exams]);
 
   const addSubject = useCallback((name: string) => {
     setSubjects(prev => [...prev, { id: crypto.randomUUID(), name, topics: [] }]);
@@ -99,6 +105,18 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setStudyLogs(prev => [...prev, { ...log, id: crypto.randomUUID() }]);
   }, []);
 
+  const addExam = useCallback((exam: Omit<Exam, 'id'>) => {
+    setExams(prev => [...prev, { ...exam, id: crypto.randomUUID() }]);
+  }, []);
+
+  const removeExam = useCallback((id: string) => {
+    setExams(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  const updateExam = useCallback((id: string, updates: Partial<Omit<Exam, 'id'>>) => {
+    setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  }, []);
+
   const getTopicStats = useCallback((topicId: string): TopicStats => {
     const logs = studyLogs.filter(l => l.topicId === topicId);
     const correct = logs.reduce((sum, l) => sum + l.questionsCorrect, 0);
@@ -117,10 +135,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, studyLogs,
+      subjects, scheduleEntries, studyLogs, exams,
       addSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addStudyLog, getTopicStats, getSubjectStats,
+      addExam, removeExam, updateExam,
     }}>
       {children}
     </StudyContext.Provider>
