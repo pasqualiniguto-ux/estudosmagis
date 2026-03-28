@@ -13,6 +13,7 @@ interface StudyContextType {
   scheduleEntries: ScheduleEntry[];
   cycleEntries: CycleEntry[];
   activeCycleIndex: number;
+  completedCyclesCount: number;
   dailyProgress: DailyProgress[];
   studyLogs: StudyLog[];
   exams: Exam[];
@@ -27,6 +28,7 @@ interface StudyContextType {
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
   advanceCycle: () => void;
+  setCompletedCyclesCount: (count: number) => void;
   addStudiedTime: (entryId: string, date: string, seconds: number) => void;
   getProgressForEntry: (entryId: string, date: string) => number;
   getEntriesForDate: (date: string) => ScheduleEntry[];
@@ -58,6 +60,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule_v2', []));
   const [cycleEntries, setCycleEntries] = useState<CycleEntry[]>(() => loadStorage('study_cycle_entries', []));
   const [activeCycleIndex, setActiveCycleIndex] = useState<number>(() => loadStorage('study_active_cycle_index', 0));
+  const [completedCyclesCount, setCompletedCyclesCount] = useState<number>(() => loadStorage('study_completed_cycles', 0));
   const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>(() => loadStorage('study_daily_progress', []));
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
   const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
@@ -66,6 +69,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveStorage('study_schedule_v2', scheduleEntries), [scheduleEntries]);
   useEffect(() => saveStorage('study_cycle_entries', cycleEntries), [cycleEntries]);
   useEffect(() => saveStorage('study_active_cycle_index', activeCycleIndex), [activeCycleIndex]);
+  useEffect(() => saveStorage('study_completed_cycles', completedCyclesCount), [completedCyclesCount]);
   useEffect(() => saveStorage('study_daily_progress', dailyProgress), [dailyProgress]);
   useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
   useEffect(() => saveStorage('study_exams', exams), [exams]);
@@ -203,16 +207,20 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const advanceCycle = useCallback(() => {
     setActiveCycleIndex(prev => {
       if (cycleEntries.length === 0) return 0;
-      return (prev + 1) % cycleEntries.length;
+      const nextIndex = (prev + 1) % cycleEntries.length;
+      if (nextIndex === 0 && cycleEntries.length > 0) {
+        setCompletedCyclesCount(c => c + 1);
+      }
+      return nextIndex;
     });
   }, [cycleEntries.length]);
 
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, cycleEntries, activeCycleIndex, dailyProgress, studyLogs, exams,
+      subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams,
       addSubject, updateSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
-      addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle,
+      addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,

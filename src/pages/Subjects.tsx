@@ -21,7 +21,7 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 }
 
 export default function Subjects() {
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, removeTopic, getTopicStats, addStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, removeTopic, getTopicStats, getSubjectStats, addStudyLog } = useStudy();
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -109,6 +109,20 @@ export default function Subjects() {
                 >
                   {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   <span className="font-semibold text-foreground flex-1">{subject.name}</span>
+                  {(() => {
+                    const stats = getSubjectStats(subject.id);
+                    if (stats.total > 0) {
+                      return (
+                        <div className="hidden sm:flex items-center gap-3 mr-2 text-xs text-muted-foreground bg-background/50 px-3 py-1 rounded-md border border-border/50">
+                          <span>{stats.total} questões</span>
+                          <span className="text-primary font-medium">{stats.correct} ✓</span>
+                          <span className="text-destructive font-medium">{stats.wrong} ✗</span>
+                          <PercentageBadge percentage={stats.percentage} />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <Button
                     variant="ghost"
                     size="icon"

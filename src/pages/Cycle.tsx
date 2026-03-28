@@ -32,7 +32,7 @@ function toDateStr(d: Date): string {
 }
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle } = useStudy();
 
   const todayStr = toDateStr(new Date());
 
@@ -149,7 +149,12 @@ export default function Cycle() {
 
           {/* Listagem do Ciclo */}
           <div className="col-span-1 lg:col-span-2">
-            <h2 className="text-lg font-semibold mb-4 text-center lg:text-left">Seu Ciclo (Ordem)</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <h2 className="text-lg font-semibold text-center sm:text-left">Seu Ciclo (Ordem)</h2>
+              <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border self-center sm:self-auto">
+                Ciclos concluídos: <span className="text-foreground font-bold ml-1">{completedCyclesCount}</span>
+              </div>
+            </div>
             {cycleEntries.length === 0 ? (
               <div className="border border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-muted-foreground">
                 <p>O seu ciclo está vazio.</p>
