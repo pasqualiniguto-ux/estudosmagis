@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, RotateCw } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, RotateCw, RotateCcw } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 function fmtTime(seconds: number): string {
@@ -32,7 +32,7 @@ function toDateStr(d: Date): string {
 }
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, setCompletedCyclesCount } = useStudy();
 
   const todayStr = toDateStr(new Date());
 
@@ -151,8 +151,15 @@ export default function Cycle() {
           <div className="col-span-1 lg:col-span-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <h2 className="text-lg font-semibold text-center sm:text-left">Seu Ciclo (Ordem)</h2>
-              <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border self-center sm:self-auto">
-                Ciclos concluídos: <span className="text-foreground font-bold ml-1">{completedCyclesCount}</span>
+              <div className="flex items-center gap-2 self-center sm:self-auto">
+                <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border">
+                  Ciclos concluídos: <span className="text-foreground font-bold ml-1">{completedCyclesCount}</span>
+                </div>
+                {completedCyclesCount > 0 && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground border" onClick={() => setCompletedCyclesCount(0)} title="Zerar contagem">
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
             {cycleEntries.length === 0 ? (
