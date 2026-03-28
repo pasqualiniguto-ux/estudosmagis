@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, RotateCw } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 function fmtTime(seconds: number): string {
@@ -210,9 +210,15 @@ export default function Cycle() {
                         </Button>
                         
                         {isActive && (
-                          <Button size="sm" className="ml-2 gap-1 px-3" onClick={advanceCycle}>
-                            Avançar <ArrowRight className="h-4 w-4" />
-                          </Button>
+                          index === cycleEntries.length - 1 ? (
+                            <Button size="sm" className="ml-2 gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
+                              Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <Button size="sm" className="ml-2 gap-1 px-3" onClick={advanceCycle}>
+                              Avançar <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          )
                         )}
                         {!isActive && (
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-2" onClick={() => removeCycleEntry(entry.id)}>
