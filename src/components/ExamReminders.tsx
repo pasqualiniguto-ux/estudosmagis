@@ -135,6 +135,19 @@ export default function ExamReminders() {
                 {isExpanded && exam.notes && (
                   <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-2">{exam.notes}</p>
                 )}
+
+                {isExpanded && exam.url && (
+                  <a
+                    href={exam.url.startsWith('http') ? exam.url : `https://${exam.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center gap-1.5 text-xs text-primary hover:underline"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Acessar edital / banca
+                  </a>
+                )}
               </div>
             );
           })}
