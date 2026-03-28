@@ -29,6 +29,7 @@ export interface CycleEntry {
 export interface DailyProgress {
   id: string;
   entryId: string;
+  subjectId?: string;
   date: string; // YYYY-MM-DD
   studiedSeconds: number;
 }

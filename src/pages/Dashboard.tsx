@@ -26,13 +26,12 @@ export default function Dashboard() {
 
   const subjectHours = useMemo(() => {
     return subjects.map(s => {
-      const entryIds = new Set(scheduleEntries.filter(e => e.subjectId === s.id).map(e => e.id));
       const seconds = dailyProgress
-        .filter(p => entryIds.has(p.entryId))
+        .filter(p => p.subjectId === s.id)
         .reduce((sum, p) => sum + p.studiedSeconds, 0);
       return { id: s.id, name: s.name, seconds };
     }).sort((a, b) => b.seconds - a.seconds);
-  }, [subjects, scheduleEntries, dailyProgress]);
+  }, [subjects, dailyProgress]);
 
   // Subject performance data
   const subjectPerformance = useMemo(() => {

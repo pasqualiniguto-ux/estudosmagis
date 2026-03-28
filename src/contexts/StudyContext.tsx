@@ -61,7 +61,18 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [cycleEntries, setCycleEntries] = useState<CycleEntry[]>(() => loadStorage('study_cycle_entries', []));
   const [activeCycleIndex, setActiveCycleIndex] = useState<number>(() => loadStorage('study_active_cycle_index', 0));
   const [completedCyclesCount, setCompletedCyclesCount] = useState<number>(() => loadStorage('study_completed_cycles', 0));
-  const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>(() => loadStorage('study_daily_progress', []));
+  const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>(() => {
+    const raw = loadStorage<DailyProgress[]>('study_daily_progress', []);
+    const sched = loadStorage<ScheduleEntry[]>('study_schedule_v2', []);
+    const cyc = loadStorage<CycleEntry[]>('study_cycle_entries', []);
+    return raw.map(p => {
+      if (!p.subjectId) {
+        const sId = sched.find(e => e.id === p.entryId)?.subjectId || cyc.find(e => e.id === p.entryId)?.subjectId;
+        return { ...p, subjectId: sId };
+      }
+      return p;
+    });
+  });
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
   const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
 
@@ -133,18 +144,21 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   }, [dailyProgress]);
 
   const addStudiedTime = useCallback((entryId: string, date: string, seconds: number) => {
+    const subjectId = scheduleEntries.find(e => e.id === entryId)?.subjectId 
+                   || cycleEntries.find(e => e.id === entryId)?.subjectId;
+
     setDailyProgress(prev => {
       const existing = prev.find(p => p.entryId === entryId && p.date === date);
       if (existing) {
         return prev.map(p =>
           p.entryId === entryId && p.date === date
-            ? { ...p, studiedSeconds: p.studiedSeconds + seconds }
+            ? { ...p, studiedSeconds: p.studiedSeconds + seconds, subjectId: subjectId || p.subjectId }
             : p
         );
       }
-      return [...prev, { id: crypto.randomUUID(), entryId, date, studiedSeconds: seconds }];
+      return [...prev, { id: crypto.randomUUID(), entryId, subjectId, date, studiedSeconds: seconds }];
     });
-  }, []);
+  }, [scheduleEntries, cycleEntries]);
 
   const addStudyLog = useCallback((log: Omit<StudyLog, 'id'>) => {
     setStudyLogs(prev => [...prev, { ...log, id: crypto.randomUUID() }]);
@@ -210,6 +224,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       const nextIndex = (prev + 1) % cycleEntries.length;
       if (nextIndex === 0 && cycleEntries.length > 0) {
         setCompletedCyclesCount(c => c + 1);
+        setCycleEntries(cycles => cycles.map(c => ({ ...c, id: crypto.randomUUID() })));
       }
       return nextIndex;
     });
