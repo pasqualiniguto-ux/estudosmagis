@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Play, Plus, Clock, ClipboardList, Trash2 } from 'lucide-react';
+import StudyStreak from '@/components/StudyStreak';
 
 const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
@@ -102,7 +103,10 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <AppNavigation />
       <main className="container py-6">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Planejamento Semanal</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Planejamento Semanal</h1>
+          <StudyStreak />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
           {DAYS.map((day, dayIndex) => {
