@@ -40,6 +40,7 @@ export default function ExamReminders() {
     setDate(undefined);
     setSelectedSubjects([]);
     setNotes('');
+    setUrl('');
   };
 
   const toggleSubject = (id: string) => {
