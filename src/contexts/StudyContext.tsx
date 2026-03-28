@@ -105,6 +105,18 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setStudyLogs(prev => [...prev, { ...log, id: crypto.randomUUID() }]);
   }, []);
 
+  const addExam = useCallback((exam: Omit<Exam, 'id'>) => {
+    setExams(prev => [...prev, { ...exam, id: crypto.randomUUID() }]);
+  }, []);
+
+  const removeExam = useCallback((id: string) => {
+    setExams(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  const updateExam = useCallback((id: string, updates: Partial<Omit<Exam, 'id'>>) => {
+    setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  }, []);
+
   const getTopicStats = useCallback((topicId: string): TopicStats => {
     const logs = studyLogs.filter(l => l.topicId === topicId);
     const correct = logs.reduce((sum, l) => sum + l.questionsCorrect, 0);
@@ -123,10 +135,11 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, studyLogs,
+      subjects, scheduleEntries, studyLogs, exams,
       addSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addStudyLog, getTopicStats, getSubjectStats,
+      addExam, removeExam, updateExam,
     }}>
       {children}
     </StudyContext.Provider>
