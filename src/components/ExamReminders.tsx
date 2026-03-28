@@ -19,6 +19,7 @@ export default function ExamReminders() {
   const [date, setDate] = useState<Date | undefined>();
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [url, setUrl] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleAdd = () => {
