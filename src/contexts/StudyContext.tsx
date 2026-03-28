@@ -47,10 +47,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [subjects, setSubjects] = useState<Subject[]>(() => loadStorage('study_subjects', []));
   const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule', []));
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
+  const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
 
   useEffect(() => saveStorage('study_subjects', subjects), [subjects]);
   useEffect(() => saveStorage('study_schedule', scheduleEntries), [scheduleEntries]);
   useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
+  useEffect(() => saveStorage('study_exams', exams), [exams]);
 
   const addSubject = useCallback((name: string) => {
     setSubjects(prev => [...prev, { id: crypto.randomUUID(), name, topics: [] }]);
