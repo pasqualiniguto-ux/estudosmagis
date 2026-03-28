@@ -28,3 +28,11 @@ export interface StudyLog {
   questionsWrong: number;
   scheduleEntryId: string;
 }
+
+export interface Exam {
+  id: string;
+  name: string;
+  date: string; // ISO date string YYYY-MM-DD
+  subjectIds: string[];
+  notes: string;
+}
