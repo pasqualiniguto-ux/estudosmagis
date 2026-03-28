@@ -212,6 +212,11 @@ export default function ExamReminders() {
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anotações sobre a prova..." rows={3} />
             </div>
 
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Link do edital ou banca (opcional)</label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.exemplo.com/edital" />
+            </div>
+
             <Button className="w-full" onClick={handleAdd} disabled={!name || !date}>Salvar</Button>
           </div>
         </DialogContent>
