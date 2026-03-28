@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppNavigation from '@/components/AppNavigation';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
@@ -9,10 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Plus, Clock, ClipboardList, Trash2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
-const DAYS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DAY_NAMES_FULL = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -30,21 +33,52 @@ function fmtPlanned(minutes: number): string {
   return `${m}min`;
 }
 
-export default function Index() {
-  const { subjects, scheduleEntries, addScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog } = useStudy();
+function toDateStr(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
 
-  const [addDay, setAddDay] = useState<number | null>(null);
+function getWeekDates(weekOffset: number): Date[] {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const jsDay = today.getDay();
+  const diffToMonday = jsDay === 0 ? -6 : 1 - jsDay;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday + weekOffset * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function fmtDateShort(d: Date): string {
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export default function Index() {
+  const { subjects, addScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry } = useStudy();
+
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const todayStr = toDateStr(new Date());
+
+  // Add entry dialog
+  const [addDate, setAddDate] = useState<Date | null>(null);
   const [addSubjectId, setAddSubjectId] = useState('');
   const [addHours, setAddHours] = useState(0);
   const [addMinutes, setAddMinutes] = useState(30);
+  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring'>('once');
 
-  const [timerEntry, setTimerEntry] = useState<ScheduleEntry | null>(null);
+  // Timer
+  const [timerEntry, setTimerEntry] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
 
-  const [manualEntry, setManualEntry] = useState<ScheduleEntry | null>(null);
+  // Manual time
+  const [manualState, setManualState] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
   const [manualHours, setManualHours] = useState(0);
   const [manualMins, setManualMins] = useState(0);
 
-  const [logEntry, setLogEntry] = useState<ScheduleEntry | null>(null);
+  // Manual log
+  const [logState, setLogState] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
   const [logTopicId, setLogTopicId] = useState('');
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
@@ -52,42 +86,40 @@ export default function Index() {
   const [logTimeM, setLogTimeM] = useState(0);
 
   const handleAddEntry = () => {
-    if (addDay === null || !addSubjectId) return;
+    if (!addDate || !addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
     if (totalMin <= 0) return;
-    addScheduleEntry(addDay, addSubjectId, totalMin);
-    setAddDay(null);
-    setAddSubjectId('');
-    setAddHours(0);
-    setAddMinutes(30);
+    const ourDay = (addDate.getDay() + 6) % 7;
+    addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
+    setAddDate(null);
   };
 
   const handleManualTime = () => {
-    if (!manualEntry) return;
+    if (!manualState) return;
     const totalSec = manualHours * 3600 + manualMins * 60;
-    if (totalSec > 0) addStudiedTime(manualEntry.id, totalSec);
-    setManualEntry(null);
+    if (totalSec > 0) addStudiedTime(manualState.entry.id, manualState.date, totalSec);
+    setManualState(null);
     setManualHours(0);
     setManualMins(0);
   };
 
   const handleManualLog = () => {
-    if (!logEntry) return;
-    const subject = subjects.find(s => s.id === logEntry.subjectId);
+    if (!logState) return;
+    const subject = subjects.find(s => s.id === logState.entry.subjectId);
     const topic = subject?.topics.find(t => t.id === logTopicId);
     const timeSec = logTimeH * 3600 + logTimeM * 60;
-    if (timeSec > 0) addStudiedTime(logEntry.id, timeSec);
+    if (timeSec > 0) addStudiedTime(logState.entry.id, logState.date, timeSec);
     addStudyLog({
-      subjectId: logEntry.subjectId,
+      subjectId: logState.entry.subjectId,
       topicId: logTopicId || '',
       topicName: topic?.name || '',
-      date: new Date().toISOString().split('T')[0],
+      date: logState.date,
       timeStudiedSeconds: timeSec,
       questionsCorrect: logCorrect,
       questionsWrong: logWrong,
-      scheduleEntryId: logEntry.id,
+      scheduleEntryId: logState.entry.id,
     });
-    setLogEntry(null);
+    setLogState(null);
     resetLogForm();
   };
 
@@ -103,56 +135,86 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <AppNavigation />
       <main className="container py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-foreground">Planejamento Semanal</h1>
           <StudyStreak />
         </div>
 
+        {/* Week Navigation */}
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
+            {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+          {weekOffset !== 0 && (
+            <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-          {DAYS.map((day, dayIndex) => {
-            const dayEntries = scheduleEntries.filter(e => e.dayOfWeek === dayIndex);
+          {weekDates.map((dateObj, i) => {
+            const dateStr = toDateStr(dateObj);
+            const isToday = dateStr === todayStr;
+            const dayEntries = getEntriesForDate(dateStr);
+
             return (
-              <div key={dayIndex} className="bg-card rounded-xl border border-border p-3 flex flex-col">
-                <h3 className="text-sm font-semibold text-center text-foreground mb-3 pb-2 border-b border-border">{day}</h3>
+              <div key={dateStr} className={`rounded-xl border p-3 flex flex-col ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-card border-border'}`}>
+                <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
+                  {DAY_NAMES[i]} {fmtDateShort(dateObj)}
+                </h3>
                 <div className="space-y-2 flex-1">
                   {dayEntries.map(entry => {
                     const subject = subjects.find(s => s.id === entry.subjectId);
+                    const studied = getProgressForEntry(entry.id, dateStr);
                     const plannedSec = entry.plannedMinutes * 60;
-                    const progress = plannedSec > 0 ? Math.min(entry.studiedSeconds / plannedSec, 1) : 0;
+                    const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
                     const isCompleted = progress >= 1;
-                    const hasProgress = entry.studiedSeconds > 0 && !isCompleted;
+                    const hasProgress = studied > 0 && !isCompleted;
 
                     return (
                       <div
-                        key={entry.id}
+                        key={entry.id + dateStr}
                         className={`p-2.5 rounded-lg border transition-all ${
-                          isCompleted
-                            ? 'border-primary/20 bg-primary/5 opacity-60'
-                            : hasProgress
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-border bg-secondary/30'
+                          isCompleted ? 'border-primary/20 bg-primary/5 opacity-60'
+                          : hasProgress ? 'border-primary/40 bg-primary/5'
+                          : 'border-border bg-secondary/30'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-xs font-semibold truncate ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                             {subject?.name || '—'}
                           </span>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeScheduleEntry(entry.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          {!entry.recurring && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeScheduleEntry(entry.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {entry.recurring && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeScheduleEntry(entry.id)} title="Remover recorrência">
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
+                        {entry.recurring && (
+                          <p className="text-[9px] text-muted-foreground mb-0.5 italic">↻ Recorrente</p>
+                        )}
                         <p className="text-[10px] text-muted-foreground mb-1.5">
-                          {fmtTime(entry.studiedSeconds)} / {fmtPlanned(entry.plannedMinutes)}
+                          {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}
                         </p>
                         <Progress value={progress * 100} className="h-1.5 mb-2" />
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-primary/10" onClick={() => setTimerEntry(entry)} title="Cronômetro">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-primary/10" onClick={() => setTimerEntry({ entry, date: dateStr })} title="Cronômetro">
                             <Play className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => setManualEntry(entry)} title="Tempo manual">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setManualState({ entry, date: dateStr }); setManualHours(0); setManualMins(0); }} title="Tempo manual">
                             <Clock className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setLogEntry(entry); resetLogForm(); }} title="Registrar estudo">
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setLogState({ entry, date: dateStr }); resetLogForm(); }} title="Registrar estudo">
                             <ClipboardList className="h-3 w-3" />
                           </Button>
                         </div>
@@ -164,7 +226,7 @@ export default function Index() {
                   variant="ghost"
                   size="sm"
                   className="w-full mt-3 text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => { setAddDay(dayIndex); setAddSubjectId(''); setAddHours(0); setAddMinutes(30); }}
+                  onClick={() => { setAddDate(dateObj); setAddSubjectId(''); setAddHours(0); setAddMinutes(30); setAddRecurring('once'); }}
                 >
                   <Plus className="h-3 w-3 mr-1" /> Adicionar
                 </Button>
@@ -178,14 +240,16 @@ export default function Index() {
 
       {/* Timer Dialog */}
       {timerEntry && (
-        <StudyTimer entry={timerEntry} open={!!timerEntry} onClose={() => setTimerEntry(null)} />
+        <StudyTimer entry={timerEntry.entry} date={timerEntry.date} open={!!timerEntry} onClose={() => setTimerEntry(null)} />
       )}
 
       {/* Add Schedule Entry Dialog */}
-      <Dialog open={addDay !== null} onOpenChange={o => { if (!o) setAddDay(null); }}>
+      <Dialog open={!!addDate} onOpenChange={o => { if (!o) setAddDate(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Adicionar matéria — {addDay !== null ? DAYS[addDay] : ''}</DialogTitle>
+            <DialogTitle>
+              Adicionar matéria — {addDate ? `${DAY_NAMES[(addDate.getDay() + 6) % 7]} ${fmtDateShort(addDate)}` : ''}
+            </DialogTitle>
           </DialogHeader>
           {subjects.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">Nenhuma matéria cadastrada. Vá para a página de Matérias para adicionar.</p>
@@ -210,6 +274,21 @@ export default function Index() {
                   <Input type="number" min={0} max={59} value={addMinutes} onChange={e => setAddMinutes(Number(e.target.value))} />
                 </div>
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Frequência</label>
+                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring')}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="once" id="freq-once" />
+                    <Label htmlFor="freq-once" className="text-sm">Apenas nesta data</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="recurring" id="freq-recurring" />
+                    <Label htmlFor="freq-recurring" className="text-sm">
+                      Repetir toda {addDate ? DAY_NAMES_FULL[(addDate.getDay() + 6) % 7] : ''}
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
               <Button className="w-full" onClick={handleAddEntry} disabled={!addSubjectId}>Adicionar</Button>
             </div>
           )}
@@ -217,7 +296,7 @@ export default function Index() {
       </Dialog>
 
       {/* Manual Time Dialog */}
-      <Dialog open={!!manualEntry} onOpenChange={o => { if (!o) setManualEntry(null); }}>
+      <Dialog open={!!manualState} onOpenChange={o => { if (!o) setManualState(null); }}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
             <DialogTitle>Adicionar tempo manual</DialogTitle>
@@ -239,13 +318,13 @@ export default function Index() {
       </Dialog>
 
       {/* Manual Study Log Dialog */}
-      <Dialog open={!!logEntry} onOpenChange={o => { if (!o) setLogEntry(null); }}>
+      <Dialog open={!!logState} onOpenChange={o => { if (!o) setLogState(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Registrar estudo manual</DialogTitle>
           </DialogHeader>
-          {logEntry && (() => {
-            const subject = subjects.find(s => s.id === logEntry.subjectId);
+          {logState && (() => {
+            const subject = subjects.find(s => s.id === logState.entry.subjectId);
             return (
               <div className="space-y-4 py-2">
                 <p className="text-sm text-muted-foreground">Matéria: <span className="text-foreground font-medium">{subject?.name}</span></p>

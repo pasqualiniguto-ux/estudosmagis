@@ -11,9 +11,17 @@ export interface Topic {
 
 export interface ScheduleEntry {
   id: string;
-  dayOfWeek: number; // 0=Monday ... 6=Sunday
   subjectId: string;
   plannedMinutes: number;
+  recurring: boolean;
+  dayOfWeek: number; // 0=Mon, 1=Tue ... 6=Sun
+  date?: string; // YYYY-MM-DD for one-time entries
+}
+
+export interface DailyProgress {
+  id: string;
+  entryId: string;
+  date: string; // YYYY-MM-DD
   studiedSeconds: number;
 }
 
@@ -32,7 +40,7 @@ export interface StudyLog {
 export interface Exam {
   id: string;
   name: string;
-  date: string; // ISO date string YYYY-MM-DD
+  date: string;
   subjectIds: string[];
   notes: string;
   url?: string;
