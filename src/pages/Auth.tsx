@@ -76,7 +76,7 @@ export default function Auth() {
           <div className="flex justify-center mb-2">
             <BookOpen className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-xl">EstudosMagis</CardTitle>
+          <CardTitle className="text-xl">Organizador de Estudos</CardTitle>
           <CardDescription>
             {mode === 'login' && 'Entre na sua conta'}
             {mode === 'signup' && 'Crie sua conta'}
