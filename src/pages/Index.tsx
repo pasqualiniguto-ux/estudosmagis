@@ -103,7 +103,10 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <AppNavigation />
       <main className="container py-6">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Planejamento Semanal</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Planejamento Semanal</h1>
+          <StudyStreak />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
           {DAYS.map((day, dayIndex) => {
