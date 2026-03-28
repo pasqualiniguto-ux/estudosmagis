@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Subject, Topic, ScheduleEntry, StudyLog } from '@/types/study';
+import { Subject, Topic, ScheduleEntry, StudyLog, Exam } from '@/types/study';
 
 interface TopicStats {
   total: number;
