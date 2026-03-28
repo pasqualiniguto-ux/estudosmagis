@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Clock, Target, TrendingUp, BookOpen } from 'lucide-react';
 
 function fmtHours(seconds: number): string {
@@ -17,23 +17,22 @@ function fmtHours(seconds: number): string {
 }
 
 export default function Dashboard() {
-  const { subjects, studyLogs, scheduleEntries, getSubjectStats } = useStudy();
+  const { subjects, studyLogs, scheduleEntries, dailyProgress, getSubjectStats } = useStudy();
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all');
 
-  // Total hours studied (from schedule entries)
   const totalStudiedSeconds = useMemo(() => {
-    return scheduleEntries.reduce((sum, e) => sum + e.studiedSeconds, 0);
-  }, [scheduleEntries]);
+    return dailyProgress.reduce((sum, p) => sum + p.studiedSeconds, 0);
+  }, [dailyProgress]);
 
-  // Hours per subject
   const subjectHours = useMemo(() => {
     return subjects.map(s => {
-      const seconds = scheduleEntries
-        .filter(e => e.subjectId === s.id)
-        .reduce((sum, e) => sum + e.studiedSeconds, 0);
+      const entryIds = new Set(scheduleEntries.filter(e => e.subjectId === s.id).map(e => e.id));
+      const seconds = dailyProgress
+        .filter(p => entryIds.has(p.entryId))
+        .reduce((sum, p) => sum + p.studiedSeconds, 0);
       return { id: s.id, name: s.name, seconds };
     }).sort((a, b) => b.seconds - a.seconds);
-  }, [subjects, scheduleEntries]);
+  }, [subjects, scheduleEntries, dailyProgress]);
 
   // Subject performance data
   const subjectPerformance = useMemo(() => {

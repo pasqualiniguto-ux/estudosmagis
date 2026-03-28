@@ -3,11 +3,14 @@ import { useStudy } from '@/contexts/StudyContext';
 import { Flame } from 'lucide-react';
 
 export default function StudyStreak() {
-  const { studyLogs, scheduleEntries } = useStudy();
+  const { studyLogs, dailyProgress } = useStudy();
 
   const streak = useMemo(() => {
-    // Collect all unique dates with study activity (from logs or schedule entries with studied time)
     const studiedDates = new Set<string>();
+
+    dailyProgress.forEach(p => {
+      if (p.studiedSeconds > 0) studiedDates.add(p.date);
+    });
 
     studyLogs.forEach(log => {
       if (log.timeStudiedSeconds > 0 || log.questionsCorrect > 0 || log.questionsWrong > 0) {
@@ -15,16 +18,8 @@ export default function StudyStreak() {
       }
     });
 
-    scheduleEntries.forEach(entry => {
-      if (entry.studiedSeconds > 0) {
-        const today = new Date().toISOString().split('T')[0];
-        studiedDates.add(today);
-      }
-    });
-
     if (studiedDates.size === 0) return 0;
 
-    // Count consecutive days backwards from today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     let count = 0;
@@ -41,7 +36,7 @@ export default function StudyStreak() {
     }
 
     return count;
-  }, [studyLogs, scheduleEntries]);
+  }, [studyLogs, dailyProgress]);
 
   return (
     <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-4 py-2.5">

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Subject, Topic, ScheduleEntry, StudyLog, Exam } from '@/types/study';
+import { Subject, Topic, ScheduleEntry, DailyProgress, StudyLog, Exam } from '@/types/study';
 
 interface TopicStats {
   total: number;
@@ -11,15 +11,18 @@ interface TopicStats {
 interface StudyContextType {
   subjects: Subject[];
   scheduleEntries: ScheduleEntry[];
+  dailyProgress: DailyProgress[];
   studyLogs: StudyLog[];
   exams: Exam[];
   addSubject: (name: string) => void;
   removeSubject: (id: string) => void;
   addTopic: (subjectId: string, name: string) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
-  addScheduleEntry: (dayOfWeek: number, subjectId: string, plannedMinutes: number) => void;
+  addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   removeScheduleEntry: (id: string) => void;
-  addStudiedTime: (entryId: string, seconds: number) => void;
+  addStudiedTime: (entryId: string, date: string, seconds: number) => void;
+  getProgressForEntry: (entryId: string, date: string) => number;
+  getEntriesForDate: (date: string) => ScheduleEntry[];
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
   getTopicStats: (topicId: string) => TopicStats;
   getSubjectStats: (subjectId: string) => TopicStats;
@@ -45,12 +48,14 @@ function saveStorage<T>(key: string, value: T) {
 
 export function StudyProvider({ children }: { children: ReactNode }) {
   const [subjects, setSubjects] = useState<Subject[]>(() => loadStorage('study_subjects', []));
-  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule', []));
+  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule_v2', []));
+  const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>(() => loadStorage('study_daily_progress', []));
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
   const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
 
   useEffect(() => saveStorage('study_subjects', subjects), [subjects]);
-  useEffect(() => saveStorage('study_schedule', scheduleEntries), [scheduleEntries]);
+  useEffect(() => saveStorage('study_schedule_v2', scheduleEntries), [scheduleEntries]);
+  useEffect(() => saveStorage('study_daily_progress', dailyProgress), [dailyProgress]);
   useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
   useEffect(() => saveStorage('study_exams', exams), [exams]);
 
@@ -79,13 +84,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     ));
   }, []);
 
-  const addScheduleEntry = useCallback((dayOfWeek: number, subjectId: string, plannedMinutes: number) => {
+  const addScheduleEntry = useCallback((subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
     setScheduleEntries(prev => [...prev, {
       id: crypto.randomUUID(),
-      dayOfWeek,
       subjectId,
       plannedMinutes,
-      studiedSeconds: 0,
+      recurring,
+      dayOfWeek,
+      date: recurring ? undefined : date,
     }]);
   }, []);
 
@@ -93,12 +99,32 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setScheduleEntries(prev => prev.filter(e => e.id !== id));
   }, []);
 
-  const addStudiedTime = useCallback((entryId: string, seconds: number) => {
-    setScheduleEntries(prev => prev.map(e =>
-      e.id === entryId
-        ? { ...e, studiedSeconds: e.studiedSeconds + seconds }
-        : e
-    ));
+  const getEntriesForDate = useCallback((dateStr: string): ScheduleEntry[] => {
+    const d = new Date(dateStr + 'T12:00:00');
+    const ourDay = (d.getDay() + 6) % 7; // JS Sun=0 -> our Sun=6, JS Mon=1 -> our Mon=0
+    return scheduleEntries.filter(e => {
+      if (e.recurring) return e.dayOfWeek === ourDay;
+      return e.date === dateStr;
+    });
+  }, [scheduleEntries]);
+
+  const getProgressForEntry = useCallback((entryId: string, date: string): number => {
+    const p = dailyProgress.find(dp => dp.entryId === entryId && dp.date === date);
+    return p?.studiedSeconds || 0;
+  }, [dailyProgress]);
+
+  const addStudiedTime = useCallback((entryId: string, date: string, seconds: number) => {
+    setDailyProgress(prev => {
+      const existing = prev.find(p => p.entryId === entryId && p.date === date);
+      if (existing) {
+        return prev.map(p =>
+          p.entryId === entryId && p.date === date
+            ? { ...p, studiedSeconds: p.studiedSeconds + seconds }
+            : p
+        );
+      }
+      return [...prev, { id: crypto.randomUUID(), entryId, date, studiedSeconds: seconds }];
+    });
   }, []);
 
   const addStudyLog = useCallback((log: Omit<StudyLog, 'id'>) => {
@@ -135,9 +161,10 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, studyLogs, exams,
+      subjects, scheduleEntries, dailyProgress, studyLogs, exams,
       addSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
+      getProgressForEntry, getEntriesForDate,
       addStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
     }}>

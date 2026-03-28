@@ -9,23 +9,24 @@ import { ScheduleEntry } from '@/types/study';
 
 interface Props {
   entry: ScheduleEntry;
+  date: string;
   open: boolean;
   onClose: () => void;
 }
 
 type Phase = 'timer' | 'log';
 
-export default function StudyTimer({ entry, open, onClose }: Props) {
-  const { subjects, addStudiedTime, addStudyLog } = useStudy();
+export default function StudyTimer({ entry, date, open, onClose }: Props) {
+  const { subjects, addStudiedTime, addStudyLog, getProgressForEntry } = useStudy();
   const subject = subjects.find(s => s.id === entry.subjectId);
 
-  const remainingPlanned = Math.max((entry.plannedMinutes * 60) - entry.studiedSeconds, 0);
+  const currentProgress = getProgressForEntry(entry.id, date);
+  const remainingPlanned = Math.max((entry.plannedMinutes * 60) - currentProgress, 0);
   const [secondsLeft, setSecondsLeft] = useState(remainingPlanned);
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState<Phase>('timer');
 
-  // Log form state
   const [topicId, setTopicId] = useState('');
   const [questionsCorrect, setQuestionsCorrect] = useState(0);
   const [questionsWrong, setQuestionsWrong] = useState(0);
@@ -34,7 +35,8 @@ export default function StudyTimer({ entry, open, onClose }: Props) {
 
   useEffect(() => {
     if (open) {
-      const rem = Math.max((entry.plannedMinutes * 60) - entry.studiedSeconds, 0);
+      const prog = getProgressForEntry(entry.id, date);
+      const rem = Math.max((entry.plannedMinutes * 60) - prog, 0);
       setSecondsLeft(rem);
       setIsRunning(false);
       setElapsed(0);
@@ -43,7 +45,7 @@ export default function StudyTimer({ entry, open, onClose }: Props) {
       setQuestionsCorrect(0);
       setQuestionsWrong(0);
     }
-  }, [open, entry.plannedMinutes, entry.studiedSeconds]);
+  }, [open, entry.id, entry.plannedMinutes, date, getProgressForEntry]);
 
   useEffect(() => {
     if (isRunning) {
@@ -63,7 +65,6 @@ export default function StudyTimer({ entry, open, onClose }: Props) {
     };
   }, [isRunning]);
 
-  // Auto-stop when time runs out
   useEffect(() => {
     if (secondsLeft === 0 && elapsed > 0 && !isRunning) {
       handleStop();
@@ -73,7 +74,7 @@ export default function StudyTimer({ entry, open, onClose }: Props) {
   const handleStop = () => {
     setIsRunning(false);
     if (elapsed > 0) {
-      addStudiedTime(entry.id, elapsed);
+      addStudiedTime(entry.id, date, elapsed);
       setPhase('log');
     }
   };
@@ -84,7 +85,7 @@ export default function StudyTimer({ entry, open, onClose }: Props) {
       subjectId: entry.subjectId,
       topicId: topicId || '',
       topicName: topic?.name || '',
-      date: new Date().toISOString().split('T')[0],
+      date,
       timeStudiedSeconds: elapsed,
       questionsCorrect,
       questionsWrong,
