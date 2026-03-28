@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarDays, BookOpen, Sun, Moon } from 'lucide-react';
+import { CalendarDays, BookOpen, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
 export default function AppNavigation() {
