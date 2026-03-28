@@ -168,6 +168,8 @@ export default function Index() {
             );
           })}
         </div>
+
+        <ExamReminders />
       </main>
 
       {/* Timer Dialog */}
