@@ -220,11 +220,9 @@ export default function Cycle() {
                             </Button>
                           )
                         )}
-                        {!isActive && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-2" onClick={() => removeCycleEntry(entry.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-1" onClick={() => removeCycleEntry(entry.id)} title="Remover bloco">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   );
