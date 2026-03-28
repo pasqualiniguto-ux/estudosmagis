@@ -184,6 +184,7 @@ export default function Index() {
                           : hasProgress ? 'border-primary/40 bg-primary/5'
                           : 'border-border bg-secondary/30'
                         }`}
+                        style={subject?.color ? { borderLeft: `4px solid ${subject.color}` } : undefined}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-xs font-semibold truncate ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>

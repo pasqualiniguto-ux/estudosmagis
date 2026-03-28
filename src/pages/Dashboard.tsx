@@ -38,7 +38,7 @@ export default function Dashboard() {
   const subjectPerformance = useMemo(() => {
     return subjects.map(s => {
       const stats = getSubjectStats(s.id);
-      return { id: s.id, name: s.name, ...stats };
+      return { id: s.id, name: s.name, color: s.color, ...stats };
     }).filter(s => s.total > 0);
   }, [subjects, getSubjectStats]);
 
@@ -184,7 +184,10 @@ export default function Dashboard() {
                   {subjectPerformance.map(s => (
                     <div key={s.id}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-foreground">{s.name}</span>
+                        <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                          {s.color && <span className="block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />}
+                          {s.name}
+                        </span>
                         <span className={`text-sm font-bold ${
                           s.percentage >= 70 ? 'text-green-600 dark:text-green-400' :
                           s.percentage >= 50 ? 'text-yellow-600 dark:text-yellow-400' :

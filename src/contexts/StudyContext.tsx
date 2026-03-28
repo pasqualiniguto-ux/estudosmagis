@@ -14,7 +14,8 @@ interface StudyContextType {
   dailyProgress: DailyProgress[];
   studyLogs: StudyLog[];
   exams: Exam[];
-  addSubject: (name: string) => void;
+  addSubject: (name: string, color?: string) => void;
+  updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
   addTopic: (subjectId: string, name: string) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
@@ -59,8 +60,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
   useEffect(() => saveStorage('study_exams', exams), [exams]);
 
-  const addSubject = useCallback((name: string) => {
-    setSubjects(prev => [...prev, { id: crypto.randomUUID(), name, topics: [] }]);
+  const addSubject = useCallback((name: string, color?: string) => {
+    setSubjects(prev => [...prev, { id: crypto.randomUUID(), name, color, topics: [] }]);
+  }, []);
+
+  const updateSubject = useCallback((id: string, updates: Partial<Subject>) => {
+    setSubjects(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   }, []);
 
   const removeSubject = useCallback((id: string) => {
@@ -162,7 +167,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   return (
     <StudyContext.Provider value={{
       subjects, scheduleEntries, dailyProgress, studyLogs, exams,
-      addSubject, removeSubject, addTopic, removeTopic,
+      addSubject, updateSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, getTopicStats, getSubjectStats,

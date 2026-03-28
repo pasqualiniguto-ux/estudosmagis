@@ -4,7 +4,12 @@ import { useStudy } from '@/contexts/StudyContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil } from 'lucide-react';
+
+const SUBJECT_COLORS = [
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
+  '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#8b5cf6'
+];
 
 function PercentageBadge({ percentage }: { percentage: number }) {
   if (percentage < 0) return <span className="text-[10px] text-muted-foreground">—</span>;
@@ -16,10 +21,13 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 }
 
 export default function Subjects() {
-  const { subjects, addSubject, removeSubject, addTopic, removeTopic, getTopicStats, addStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, removeTopic, getTopicStats, addStudyLog } = useStudy();
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectColor, setNewSubjectColor] = useState(SUBJECT_COLORS[0]);
+
+  const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string } | null>(null);
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
@@ -33,9 +41,16 @@ export default function Subjects() {
 
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
-    addSubject(newSubjectName.trim());
+    addSubject(newSubjectName.trim(), newSubjectColor);
     setNewSubjectName('');
+    setNewSubjectColor(SUBJECT_COLORS[0]);
     setShowAddSubject(false);
+  };
+
+  const handleEditSubject = () => {
+    if (!editSubjectState || !editSubjectState.name.trim()) return;
+    updateSubject(editSubjectState.id, { name: editSubjectState.name.trim(), color: editSubjectState.color });
+    setEditSubjectState(null);
   };
 
   const handleAddTopic = () => {
@@ -90,9 +105,19 @@ export default function Subjects() {
                 <div
                   className="flex items-center gap-2 p-3 cursor-pointer hover:bg-muted/30 transition-colors"
                   onClick={() => toggleExpand(subject.id)}
+                  style={{ borderLeft: subject.color ? `4px solid ${subject.color}` : '4px solid transparent' }}
                 >
                   {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   <span className="font-semibold text-foreground flex-1">{subject.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-primary"
+                    onClick={e => { e.stopPropagation(); setEditSubjectState({ id: subject.id, name: subject.name, color: subject.color || SUBJECT_COLORS[0] }); }}
+                    title="Editar matéria"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -166,9 +191,54 @@ export default function Subjects() {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Nova matéria</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <Input placeholder="Nome da matéria" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubject()} autoFocus />
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+              <Input placeholder="Nome da matéria" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubject()} autoFocus />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Cor</label>
+              <div className="flex flex-wrap gap-2">
+                {SUBJECT_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setNewSubjectColor(c)}
+                    className={`h-6 w-6 rounded-full border-2 focus:outline-none transition-all ${newSubjectColor === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
             <Button className="w-full" onClick={handleAddSubject} disabled={!newSubjectName.trim()}>Adicionar</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Subject Dialog */}
+      <Dialog open={!!editSubjectState} onOpenChange={o => { if (!o) setEditSubjectState(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Editar matéria</DialogTitle></DialogHeader>
+          {editSubjectState && (
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+                <Input placeholder="Nome da matéria" value={editSubjectState.name} onChange={e => setEditSubjectState({ ...editSubjectState, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleEditSubject()} autoFocus />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Cor</label>
+                <div className="flex flex-wrap gap-2">
+                  {SUBJECT_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setEditSubjectState({ ...editSubjectState, color: c })}
+                      className={`h-6 w-6 rounded-full border-2 focus:outline-none transition-all ${editSubjectState.color === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <Button className="w-full" onClick={handleEditSubject} disabled={!editSubjectState.name.trim()}>Salvar</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -1,6 +1,7 @@
 export interface Subject {
   id: string;
   name: string;
+  color?: string;
   topics: Topic[];
 }
 
