@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { todayStr } from '@/lib/dateUtils';
 import AppNavigation from '@/components/AppNavigation';
 import { useStudy } from '@/contexts/StudyContext';
 import { Button } from '@/components/ui/button';
