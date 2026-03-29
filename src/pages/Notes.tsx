@@ -33,7 +33,7 @@ export default function Notes() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [canDrag, setCanDrag] = useState(false); // New state to lock drag to Grip only
+  const isDraggingFromGrip = useRef(false); // Tracks if drag started from the grip handle
 
   const selectedNote = useMemo(() => 
     notes.find(n => n.id === selectedNoteId), 
@@ -222,20 +222,17 @@ export default function Notes() {
 
   // --- MOUSE EVENTS ---
   const handleMouseDownForSelection = (e: React.MouseEvent, index: number) => {
-    // If clicking on Grip, allow Dragging only
     if ((e.target as HTMLElement).closest('.grip-handle')) {
-      setCanDrag(true);
+      // Grip area: allow drag, do NOT start selection
+      isDraggingFromGrip.current = true;
       return;
     }
-
-    // If clicking on Bullet/Chevron/Whitespace, allow Multi-Select
-    if ((e.target as HTMLElement).closest('.bullet-handle')) {
-      setSelectionStart(index);
-      setSelectionEnd(index);
-      setIsSelecting(true);
-      setCanDrag(false);
-      window.getSelection()?.removeAllRanges();
-    }
+    // Bullet/margin area: start multi-select, do NOT allow drag
+    isDraggingFromGrip.current = false;
+    setSelectionStart(index);
+    setSelectionEnd(index);
+    setIsSelecting(true);
+    window.getSelection()?.removeAllRanges();
   };
 
   const handleMouseEnter = (index: number) => {
@@ -245,12 +242,11 @@ export default function Notes() {
 
   const handleMouseUp = () => {
     setIsSelecting(false);
-    setCanDrag(false);
+    isDraggingFromGrip.current = false;
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    // Only allow drag if explicitly allowed by the Grip handle
-    if (!canDrag) {
+    if (!isDraggingFromGrip.current) {
       e.preventDefault();
       return;
     }
@@ -370,9 +366,9 @@ export default function Notes() {
                             className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20 ring-1 ring-primary/30' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
                             onMouseEnter={() => handleMouseEnter(index)}
                             onMouseUp={handleMouseUp}
-                            draggable={canDrag && draggedIndex === index}
+                            draggable={true}
                             onDragStart={(e) => handleDragStart(e, index)}
-                            onDragOver={(e) => e.preventDefault()}
+                            onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
                             onDrop={(e) => handleDrop(e, index)}
                           >
                             {/* NEW GRIP HANDLE for D&D ONLY */}
