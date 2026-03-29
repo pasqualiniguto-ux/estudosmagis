@@ -249,11 +249,13 @@ export default function Notes() {
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    // Only allow drag if explicitly allowed by the Grip handle
     if (!canDrag) {
       e.preventDefault();
       return;
     }
     setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index.toString());
   };
 
@@ -365,10 +367,10 @@ export default function Notes() {
                           <div 
                             key={block.id} 
                             style={{ paddingLeft: `${block.level * 28}px` }}
-                            className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
+                            className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20 ring-1 ring-primary/30' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
                             onMouseEnter={() => handleMouseEnter(index)}
                             onMouseUp={handleMouseUp}
-                            draggable={true}
+                            draggable={canDrag && draggedIndex === index}
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, index)}
