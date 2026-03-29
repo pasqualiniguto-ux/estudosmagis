@@ -416,6 +416,7 @@ export default function Notes() {
                       className="text-4xl md:text-5xl font-black bg-transparent border-none outline-none placeholder:opacity-10 w-full tracking-tighter"
                       value={localTitle}
                       onChange={e => setLocalTitle(e.target.value)}
+                      onFocus={() => setFocusedIndex(null)}
                     />
                     
                     <div className={`space-y-0.5 select-none ${
