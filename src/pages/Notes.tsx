@@ -434,7 +434,7 @@ export default function Notes() {
                               onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
                               placeholder={getBlockTypePlaceholder(block.type)}
                               className={`flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/30 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all select-text ${getBlockTypeStyles(block.type)}`}
-                              style={{ height: 'auto', fontSize: 'inherit' }}
+                              style={{ height: 'auto' }}
                             />
                             {block.collapsed && blocks[index+1]?.level > block.level && (
                               <div className="absolute right-2 top-2 px-1 py-0.5 rounded bg-primary/10 text-[9px] font-black text-primary">RECOLHIDO</div>
