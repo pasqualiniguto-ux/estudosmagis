@@ -33,7 +33,8 @@ export default function Notes() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const isDraggingFromGrip = useRef(false); // Tracks if drag started from the grip handle
+  const [draggableIndex, setDraggableIndex] = useState<number | null>(null); // Which block is currently draggable
+  const isDraggingFromGrip = useRef(false);
 
   const selectedNote = useMemo(() => 
     notes.find(n => n.id === selectedNoteId), 
@@ -223,25 +224,34 @@ export default function Notes() {
   // --- MOUSE EVENTS ---
   const handleMouseDownForSelection = (e: React.MouseEvent, index: number) => {
     if ((e.target as HTMLElement).closest('.grip-handle')) {
-      // Grip area: allow drag, do NOT start selection
+      // Grip: enable drag on this specific block
       isDraggingFromGrip.current = true;
+      setDraggableIndex(index);
       return;
     }
-    // Bullet/margin area: start multi-select, do NOT allow drag
+    // Bullet/margin: start multi-select
     isDraggingFromGrip.current = false;
+    setDraggableIndex(null);
     setSelectionStart(index);
     setSelectionEnd(index);
     setIsSelecting(true);
     window.getSelection()?.removeAllRanges();
   };
 
+  const handlePointerMove = (e: React.PointerEvent, index: number) => {
+    // PointerMove is not blocked by native drag — use it for selection tracking
+    if (isSelecting && e.buttons === 1) {
+      setSelectionEnd(index);
+    }
+  };
+
   const handleMouseEnter = (index: number) => {
-    if (isSelecting) setSelectionEnd(index);
     if (draggedIndex !== null) setDragOverIndex(index);
   };
 
   const handleMouseUp = () => {
     setIsSelecting(false);
+    setDraggableIndex(null);
     isDraggingFromGrip.current = false;
   };
 
@@ -365,8 +375,9 @@ export default function Notes() {
                             style={{ paddingLeft: `${block.level * 28}px` }}
                             className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20 ring-1 ring-primary/30' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
                             onMouseEnter={() => handleMouseEnter(index)}
+                            onPointerMove={(e) => handlePointerMove(e, index)}
                             onMouseUp={handleMouseUp}
-                            draggable={true}
+                            draggable={draggableIndex === index}
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
                             onDrop={(e) => handleDrop(e, index)}
