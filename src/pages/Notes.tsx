@@ -483,7 +483,23 @@ export default function Notes() {
                               onPaste={handlePaste}
                               onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
                               className={`flex-1 py-1 leading-relaxed selection:bg-primary/30 transition-all select-text ${getBlockTypeStyles(block.type)}`}
+                              onBlur={(e) => {
+                                // Final sync on blur to ensure state is perfect
+                                updateBlockText(index, e.currentTarget.innerHTML);
+                              }}
+                              // Use a hook-like approach: only set innerHTML if it DIFFERENT to avoid cursor jump
+                              onBeforeInput={(e) => {
+                                // Optional refinement: can handle specific formatting here
+                              }}
                               dangerouslySetInnerHTML={{ __html: block.text }}
+                              // Prevent React from re-rendering the innerHTML if it's already what we have
+                              onMouseEnter={(e) => {
+                                if (blockRefs.current[index]) {
+                                  if (blockRefs.current[index]!.innerHTML !== block.text) {
+                                    blockRefs.current[index]!.innerHTML = block.text;
+                                  }
+                                }
+                              }}
                             />
                             {block.collapsed && blocks[index+1]?.level > block.level && (
                               <div className="absolute right-2 top-2 px-1 py-0.5 rounded bg-primary/10 text-[9px] font-black text-primary">RECOLHIDO</div>
