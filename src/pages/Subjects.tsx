@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { todayStr } from '@/lib/dateUtils';
 import AppNavigation from '@/components/AppNavigation';
 import { useStudy } from '@/contexts/StudyContext';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export default function Subjects() {
       subjectId: logTopic.subjectId,
       topicId: logTopic.topicId,
       topicName: logTopic.topicName,
-      date: new Date().toISOString().split('T')[0],
+      date: todayStr(),
       timeStudiedSeconds: 0,
       questionsCorrect: logCorrect,
       questionsWrong: logWrong,
