@@ -475,30 +475,32 @@ export default function Notes() {
                             </div>
                             
                             <div
-                              ref={el => { blockRefs.current[index] = el; }}
+                              ref={el => { 
+                                blockRefs.current[index] = el;
+                                // Only update the DOM if the element is NOT focused
+                                // This is the key to preventing cursor jumps
+                                if (el && focusedIndex !== index && el.innerHTML !== block.text) {
+                                  el.innerHTML = block.text;
+                                }
+                              }}
                               contentEditable
                               suppressContentEditableWarning
-                              onInput={e => updateBlockText(index, e.currentTarget.innerHTML)}
+                              onInput={e => {
+                                const newHtml = e.currentTarget.innerHTML;
+                                updateBlockText(index, newHtml);
+                              }}
                               onKeyDown={e => handleKeyDown(e, index)}
                               onPaste={handlePaste}
-                              onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
-                              className={`flex-1 py-1 leading-relaxed selection:bg-primary/30 transition-all select-text ${getBlockTypeStyles(block.type)}`}
+                              onFocus={() => { 
+                                setFocusedIndex(index); 
+                                setSelectionStart(null); 
+                                setSelectionEnd(null); 
+                              }}
+                              className={`flex-1 py-1 px-1 leading-relaxed selection:bg-primary/30 transition-all select-text ${getBlockTypeStyles(block.type)}`}
                               onBlur={(e) => {
-                                // Final sync on blur to ensure state is perfect
                                 updateBlockText(index, e.currentTarget.innerHTML);
-                              }}
-                              // Use a hook-like approach: only set innerHTML if it DIFFERENT to avoid cursor jump
-                              onBeforeInput={(e) => {
-                                // Optional refinement: can handle specific formatting here
-                              }}
-                              dangerouslySetInnerHTML={{ __html: block.text }}
-                              // Prevent React from re-rendering the innerHTML if it's already what we have
-                              onMouseEnter={(e) => {
-                                if (blockRefs.current[index]) {
-                                  if (blockRefs.current[index]!.innerHTML !== block.text) {
-                                    blockRefs.current[index]!.innerHTML = block.text;
-                                  }
-                                }
+                                // No need to set focusedIndex to null here necessarily, 
+                                // but we could if we want to reset it.
                               }}
                             />
                             {block.collapsed && blocks[index+1]?.level > block.level && (
