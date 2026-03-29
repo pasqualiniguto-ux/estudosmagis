@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { Subject, Topic, ScheduleEntry, CycleEntry, DailyProgress, StudyLog, Exam } from '@/types/study';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TopicStats {
   total: number;
@@ -17,6 +19,7 @@ interface StudyContextType {
   dailyProgress: DailyProgress[];
   studyLogs: StudyLog[];
   exams: Exam[];
+  loading: boolean;
   addSubject: (name: string, color?: string) => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
@@ -42,139 +45,449 @@ interface StudyContextType {
 
 const StudyContext = createContext<StudyContextType | null>(null);
 
-function loadStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveStorage<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
-}
-
 export function StudyProvider({ children }: { children: ReactNode }) {
-  const [subjects, setSubjects] = useState<Subject[]>(() => loadStorage('study_subjects', []));
-  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>(() => loadStorage('study_schedule_v2', []));
-  const [cycleEntries, setCycleEntries] = useState<CycleEntry[]>(() => loadStorage('study_cycle_entries', []));
-  const [activeCycleIndex, setActiveCycleIndex] = useState<number>(() => loadStorage('study_active_cycle_index', 0));
-  const [completedCyclesCount, setCompletedCyclesCount] = useState<number>(() => loadStorage('study_completed_cycles', 0));
-  const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>(() => {
-    const raw = loadStorage<DailyProgress[]>('study_daily_progress', []);
-    const sched = loadStorage<ScheduleEntry[]>('study_schedule_v2', []);
-    const cyc = loadStorage<CycleEntry[]>('study_cycle_entries', []);
-    return raw.map(p => {
-      if (!p.subjectId) {
-        const sId = sched.find(e => e.id === p.entryId)?.subjectId || cyc.find(e => e.id === p.entryId)?.subjectId;
-        return { ...p, subjectId: sId };
+  const { user } = useAuth();
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([]);
+  const [cycleEntries, setCycleEntries] = useState<CycleEntry[]>([]);
+  const [activeCycleIndex, setActiveCycleIndex] = useState(0);
+  const [completedCyclesCount, setCompletedCyclesCountState] = useState(0);
+  const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>([]);
+  const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const migrationDone = useRef(false);
+
+  // Load all data when user logs in
+  useEffect(() => {
+    if (!user) {
+      setSubjects([]);
+      setScheduleEntries([]);
+      setCycleEntries([]);
+      setActiveCycleIndex(0);
+      setCompletedCyclesCountState(0);
+      setDailyProgress([]);
+      setStudyLogs([]);
+      setExams([]);
+      setLoading(false);
+      migrationDone.current = false;
+      return;
+    }
+    loadAllData();
+  }, [user?.id]);
+
+  async function migrateLocalStorage() {
+    if (!user || migrationDone.current) return;
+    migrationDone.current = true;
+
+    const localSubjects = loadLS<any[]>('study_subjects', []);
+    if (localSubjects.length === 0) return; // Nothing to migrate
+
+    try {
+      // Map old subject IDs to new UUIDs
+      const subjectIdMap: Record<string, string> = {};
+
+      for (const s of localSubjects) {
+        const { data } = await supabase.from('subjects').insert({
+          user_id: user.id,
+          name: s.name,
+          color: s.color || null,
+        }).select('id').single();
+        if (data) {
+          subjectIdMap[s.id] = data.id;
+          // Insert topics
+          if (s.topics?.length) {
+            const topicRows = s.topics.map((t: any) => ({
+              subject_id: data.id,
+              user_id: user.id,
+              name: t.name,
+            }));
+            await supabase.from('topics').insert(topicRows);
+          }
+        }
       }
-      return p;
+
+      // Schedule entries
+      const localSchedule = loadLS<any[]>('study_schedule_v2', []);
+      if (localSchedule.length) {
+        const rows = localSchedule
+          .filter((e: any) => subjectIdMap[e.subjectId])
+          .map((e: any) => ({
+            user_id: user.id,
+            subject_id: subjectIdMap[e.subjectId],
+            planned_minutes: e.plannedMinutes,
+            recurring: e.recurring,
+            day_of_week: e.dayOfWeek,
+            date: e.date || null,
+          }));
+        if (rows.length) await supabase.from('schedule_entries').insert(rows);
+      }
+
+      // Cycle entries
+      const localCycle = loadLS<any[]>('study_cycle_entries', []);
+      if (localCycle.length) {
+        const rows = localCycle
+          .filter((e: any) => subjectIdMap[e.subjectId])
+          .map((e: any) => ({
+            user_id: user.id,
+            subject_id: subjectIdMap[e.subjectId],
+            planned_minutes: e.plannedMinutes,
+            sort_order: e.order,
+          }));
+        if (rows.length) await supabase.from('cycle_entries').insert(rows);
+      }
+
+      // Study logs
+      const localLogs = loadLS<any[]>('study_logs', []);
+      if (localLogs.length) {
+        const rows = localLogs
+          .filter((l: any) => subjectIdMap[l.subjectId])
+          .map((l: any) => ({
+            user_id: user.id,
+            subject_id: subjectIdMap[l.subjectId],
+            topic_id: l.topicId || '',
+            topic_name: l.topicName || '',
+            date: l.date,
+            time_studied_seconds: l.timeStudiedSeconds,
+            questions_correct: l.questionsCorrect,
+            questions_wrong: l.questionsWrong,
+            schedule_entry_id: l.scheduleEntryId || '',
+          }));
+        if (rows.length) await supabase.from('study_logs').insert(rows);
+      }
+
+      // Exams
+      const localExams = loadLS<any[]>('study_exams', []);
+      if (localExams.length) {
+        const rows = localExams.map((e: any) => ({
+          user_id: user.id,
+          name: e.name,
+          date: e.date,
+          subject_ids: (e.subjectIds || []).map((sid: string) => subjectIdMap[sid] || sid),
+          notes: e.notes || '',
+          url: e.url || null,
+        }));
+        if (rows.length) await supabase.from('exams').insert(rows);
+      }
+
+      // User settings
+      const localCycleIdx = loadLS<number>('study_active_cycle_index', 0);
+      const localCompletedCycles = loadLS<number>('study_completed_cycles', 0);
+      await supabase.from('user_settings').upsert({
+        user_id: user.id,
+        active_cycle_index: localCycleIdx,
+        completed_cycles_count: localCompletedCycles,
+      }, { onConflict: 'user_id' });
+
+      // Clear localStorage after successful migration
+      ['study_subjects', 'study_schedule_v2', 'study_cycle_entries', 'study_active_cycle_index',
+       'study_completed_cycles', 'study_daily_progress', 'study_logs', 'study_exams'].forEach(k => localStorage.removeItem(k));
+
+    } catch (err) {
+      console.error('Migration error:', err);
+    }
+  }
+
+  async function loadAllData() {
+    if (!user) return;
+    setLoading(true);
+
+    // Check if user has data in DB already
+    const { data: existingSubjects } = await supabase
+      .from('subjects')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (!existingSubjects?.length) {
+      await migrateLocalStorage();
+    }
+
+    // Now load everything
+    const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, settingsRes] = await Promise.all([
+      supabase.from('subjects').select('*').eq('user_id', user.id),
+      supabase.from('topics').select('*').eq('user_id', user.id),
+      supabase.from('schedule_entries').select('*').eq('user_id', user.id),
+      supabase.from('cycle_entries').select('*').eq('user_id', user.id).order('sort_order'),
+      supabase.from('daily_progress').select('*').eq('user_id', user.id),
+      supabase.from('study_logs').select('*').eq('user_id', user.id),
+      supabase.from('exams').select('*').eq('user_id', user.id),
+      supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
+    ]);
+
+    // Build subjects with their topics
+    const topicsBySubject: Record<string, Topic[]> = {};
+    (topicsRes.data || []).forEach((t: any) => {
+      if (!topicsBySubject[t.subject_id]) topicsBySubject[t.subject_id] = [];
+      topicsBySubject[t.subject_id].push({ id: t.id, name: t.name });
     });
-  });
-  const [studyLogs, setStudyLogs] = useState<StudyLog[]>(() => loadStorage('study_logs', []));
-  const [exams, setExams] = useState<Exam[]>(() => loadStorage('study_exams', []));
 
-  useEffect(() => saveStorage('study_subjects', subjects), [subjects]);
-  useEffect(() => saveStorage('study_schedule_v2', scheduleEntries), [scheduleEntries]);
-  useEffect(() => saveStorage('study_cycle_entries', cycleEntries), [cycleEntries]);
-  useEffect(() => saveStorage('study_active_cycle_index', activeCycleIndex), [activeCycleIndex]);
-  useEffect(() => saveStorage('study_completed_cycles', completedCyclesCount), [completedCyclesCount]);
-  useEffect(() => saveStorage('study_daily_progress', dailyProgress), [dailyProgress]);
-  useEffect(() => saveStorage('study_logs', studyLogs), [studyLogs]);
-  useEffect(() => saveStorage('study_exams', exams), [exams]);
+    setSubjects((subjectsRes.data || []).map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      color: s.color,
+      topics: topicsBySubject[s.id] || [],
+    })));
 
-  const addSubject = useCallback((name: string, color?: string) => {
-    setSubjects(prev => [...prev, { id: crypto.randomUUID(), name, color, topics: [] }]);
-  }, []);
+    setScheduleEntries((scheduleRes.data || []).map((e: any) => ({
+      id: e.id,
+      subjectId: e.subject_id,
+      plannedMinutes: e.planned_minutes,
+      recurring: e.recurring,
+      dayOfWeek: e.day_of_week,
+      date: e.date,
+    })));
 
-  const updateSubject = useCallback((id: string, updates: Partial<Subject>) => {
+    setCycleEntries((cycleRes.data || []).map((e: any) => ({
+      id: e.id,
+      subjectId: e.subject_id,
+      plannedMinutes: e.planned_minutes,
+      order: e.sort_order,
+    })));
+
+    setDailyProgress((progressRes.data || []).map((p: any) => ({
+      id: p.id,
+      entryId: p.entry_id,
+      subjectId: p.subject_id,
+      date: p.date,
+      studiedSeconds: p.studied_seconds,
+    })));
+
+    setStudyLogs((logsRes.data || []).map((l: any) => ({
+      id: l.id,
+      subjectId: l.subject_id,
+      topicId: l.topic_id,
+      topicName: l.topic_name,
+      date: l.date,
+      timeStudiedSeconds: l.time_studied_seconds,
+      questionsCorrect: l.questions_correct,
+      questionsWrong: l.questions_wrong,
+      scheduleEntryId: l.schedule_entry_id,
+    })));
+
+    setExams((examsRes.data || []).map((e: any) => ({
+      id: e.id,
+      name: e.name,
+      date: e.date,
+      subjectIds: e.subject_ids || [],
+      notes: e.notes,
+      url: e.url,
+    })));
+
+    if (settingsRes.data) {
+      setActiveCycleIndex(settingsRes.data.active_cycle_index);
+      setCompletedCyclesCountState(settingsRes.data.completed_cycles_count);
+    }
+
+    setLoading(false);
+  }
+
+  // --- CRUD operations ---
+
+  const addSubject = useCallback(async (name: string, color?: string) => {
+    if (!user) return;
+    const { data } = await supabase.from('subjects').insert({
+      user_id: user.id, name, color: color || null,
+    }).select('id').single();
+    if (data) {
+      setSubjects(prev => [...prev, { id: data.id, name, color, topics: [] }]);
+    }
+  }, [user]);
+
+  const updateSubject = useCallback(async (id: string, updates: Partial<Subject>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.color !== undefined) dbUpdates.color = updates.color;
+    await supabase.from('subjects').update(dbUpdates).eq('id', id);
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  }, []);
+  }, [user]);
 
-  const removeSubject = useCallback((id: string) => {
+  const removeSubject = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('subjects').delete().eq('id', id);
     setSubjects(prev => prev.filter(s => s.id !== id));
     setScheduleEntries(prev => prev.filter(e => e.subjectId !== id));
-  }, []);
+    setCycleEntries(prev => prev.filter(e => e.subjectId !== id));
+  }, [user]);
 
-  const addTopic = useCallback((subjectId: string, name: string) => {
-    setSubjects(prev => prev.map(s =>
-      s.id === subjectId
-        ? { ...s, topics: [...s.topics, { id: crypto.randomUUID(), name }] }
-        : s
-    ));
-  }, []);
+  const addTopic = useCallback(async (subjectId: string, name: string) => {
+    if (!user) return;
+    const { data } = await supabase.from('topics').insert({
+      subject_id: subjectId, user_id: user.id, name,
+    }).select('id').single();
+    if (data) {
+      setSubjects(prev => prev.map(s =>
+        s.id === subjectId
+          ? { ...s, topics: [...s.topics, { id: data.id, name }] }
+          : s
+      ));
+    }
+  }, [user]);
 
-  const removeTopic = useCallback((subjectId: string, topicId: string) => {
+  const removeTopic = useCallback(async (subjectId: string, topicId: string) => {
+    if (!user) return;
+    await supabase.from('topics').delete().eq('id', topicId);
     setSubjects(prev => prev.map(s =>
       s.id === subjectId
         ? { ...s, topics: s.topics.filter(t => t.id !== topicId) }
         : s
     ));
-  }, []);
+  }, [user]);
 
-  const addScheduleEntry = useCallback((subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
-    setScheduleEntries(prev => [...prev, {
-      id: crypto.randomUUID(),
-      subjectId,
-      plannedMinutes,
+  const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
+    if (!user) return;
+    const { data } = await supabase.from('schedule_entries').insert({
+      user_id: user.id,
+      subject_id: subjectId,
+      planned_minutes: plannedMinutes,
       recurring,
-      dayOfWeek,
-      date: recurring ? undefined : date,
-    }]);
-  }, []);
+      day_of_week: dayOfWeek,
+      date: recurring ? null : (date || null),
+    }).select('id').single();
+    if (data) {
+      setScheduleEntries(prev => [...prev, {
+        id: data.id, subjectId, plannedMinutes, recurring, dayOfWeek,
+        date: recurring ? undefined : date,
+      }]);
+    }
+  }, [user]);
 
-  const removeScheduleEntry = useCallback((id: string) => {
+  const removeScheduleEntry = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('schedule_entries').delete().eq('id', id);
     setScheduleEntries(prev => prev.filter(e => e.id !== id));
-  }, []);
+  }, [user]);
 
-  const getEntriesForDate = useCallback((dateStr: string): ScheduleEntry[] => {
-    const d = new Date(dateStr + 'T12:00:00');
-    const ourDay = (d.getDay() + 6) % 7; // JS Sun=0 -> our Sun=6, JS Mon=1 -> our Mon=0
-    return scheduleEntries.filter(e => {
-      if (e.recurring) return e.dayOfWeek === ourDay;
-      return e.date === dateStr;
+  const addCycleEntry = useCallback(async (subjectId: string, plannedMinutes: number) => {
+    if (!user) return;
+    const order = cycleEntries.length;
+    const { data } = await supabase.from('cycle_entries').insert({
+      user_id: user.id, subject_id: subjectId, planned_minutes: plannedMinutes, sort_order: order,
+    }).select('id').single();
+    if (data) {
+      setCycleEntries(prev => [...prev, { id: data.id, subjectId, plannedMinutes, order }]);
+    }
+  }, [user, cycleEntries.length]);
+
+  const removeCycleEntry = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('cycle_entries').delete().eq('id', id);
+    setCycleEntries(prev => {
+      const filtered = prev.filter(e => e.id !== id);
+      // Re-order
+      filtered.forEach((e, idx) => {
+        e.order = idx;
+        supabase.from('cycle_entries').update({ sort_order: idx }).eq('id', e.id);
+      });
+      return [...filtered];
     });
-  }, [scheduleEntries]);
+    setActiveCycleIndex(prev => prev > 0 ? prev - 1 : 0);
+    await saveSettings(activeCycleIndex > 0 ? activeCycleIndex - 1 : 0, completedCyclesCount);
+  }, [user, activeCycleIndex, completedCyclesCount]);
+
+  const reorderCycleEntries = useCallback(async (startIndex: number, endIndex: number) => {
+    if (!user) return;
+    setCycleEntries(prev => {
+      const result = Array.from(prev);
+      const [removed] = result.splice(startIndex, 1);
+      result.splice(endIndex, 0, removed);
+      const reordered = result.map((e, idx) => ({ ...e, order: idx }));
+      // Update DB
+      reordered.forEach(e => {
+        supabase.from('cycle_entries').update({ sort_order: e.order }).eq('id', e.id);
+      });
+      return reordered;
+    });
+  }, [user]);
+
+  const advanceCycle = useCallback(async () => {
+    if (!user || cycleEntries.length === 0) return;
+    const nextIndex = (activeCycleIndex + 1) % cycleEntries.length;
+    let newCompleted = completedCyclesCount;
+    if (nextIndex === 0 && cycleEntries.length > 0) {
+      newCompleted = completedCyclesCount + 1;
+      setCompletedCyclesCountState(newCompleted);
+    }
+    setActiveCycleIndex(nextIndex);
+    await saveSettings(nextIndex, newCompleted);
+  }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
+
+  const setCompletedCyclesCount = useCallback(async (count: number) => {
+    if (!user) return;
+    setCompletedCyclesCountState(count);
+    await saveSettings(activeCycleIndex, count);
+  }, [user, activeCycleIndex]);
+
+  async function saveSettings(cycleIdx: number, completedCount: number) {
+    if (!user) return;
+    await supabase.from('user_settings').upsert({
+      user_id: user.id,
+      active_cycle_index: cycleIdx,
+      completed_cycles_count: completedCount,
+    }, { onConflict: 'user_id' });
+  }
+
+  const addStudiedTime = useCallback(async (entryId: string, date: string, seconds: number) => {
+    if (!user) return;
+    const subjectId = scheduleEntries.find(e => e.id === entryId)?.subjectId
+                   || cycleEntries.find(e => e.id === entryId)?.subjectId;
+
+    // Check if progress exists
+    const existing = dailyProgress.find(p => p.entryId === entryId && p.date === date);
+    if (existing) {
+      const newSeconds = existing.studiedSeconds + seconds;
+      await supabase.from('daily_progress').update({ studied_seconds: newSeconds }).eq('id', existing.id);
+      setDailyProgress(prev => prev.map(p =>
+        p.id === existing.id ? { ...p, studiedSeconds: newSeconds } : p
+      ));
+    } else {
+      const { data } = await supabase.from('daily_progress').insert({
+        user_id: user.id,
+        entry_id: entryId,
+        subject_id: subjectId || null,
+        date,
+        studied_seconds: seconds,
+      }).select('id').single();
+      if (data) {
+        setDailyProgress(prev => [...prev, {
+          id: data.id, entryId, subjectId, date, studiedSeconds: seconds,
+        }]);
+      }
+    }
+  }, [user, scheduleEntries, cycleEntries, dailyProgress]);
 
   const getProgressForEntry = useCallback((entryId: string, date: string): number => {
     const p = dailyProgress.find(dp => dp.entryId === entryId && dp.date === date);
     return p?.studiedSeconds || 0;
   }, [dailyProgress]);
 
-  const addStudiedTime = useCallback((entryId: string, date: string, seconds: number) => {
-    const subjectId = scheduleEntries.find(e => e.id === entryId)?.subjectId 
-                   || cycleEntries.find(e => e.id === entryId)?.subjectId;
-
-    setDailyProgress(prev => {
-      const existing = prev.find(p => p.entryId === entryId && p.date === date);
-      if (existing) {
-        return prev.map(p =>
-          p.entryId === entryId && p.date === date
-            ? { ...p, studiedSeconds: p.studiedSeconds + seconds, subjectId: subjectId || p.subjectId }
-            : p
-        );
-      }
-      return [...prev, { id: crypto.randomUUID(), entryId, subjectId, date, studiedSeconds: seconds }];
+  const getEntriesForDate = useCallback((dateStr: string): ScheduleEntry[] => {
+    const d = new Date(dateStr + 'T12:00:00');
+    const ourDay = (d.getDay() + 6) % 7;
+    return scheduleEntries.filter(e => {
+      if (e.recurring) return e.dayOfWeek === ourDay;
+      return e.date === dateStr;
     });
-  }, [scheduleEntries, cycleEntries]);
+  }, [scheduleEntries]);
 
-  const addStudyLog = useCallback((log: Omit<StudyLog, 'id'>) => {
-    setStudyLogs(prev => [...prev, { ...log, id: crypto.randomUUID() }]);
-  }, []);
-
-  const addExam = useCallback((exam: Omit<Exam, 'id'>) => {
-    setExams(prev => [...prev, { ...exam, id: crypto.randomUUID() }]);
-  }, []);
-
-  const removeExam = useCallback((id: string) => {
-    setExams(prev => prev.filter(e => e.id !== id));
-  }, []);
-
-  const updateExam = useCallback((id: string, updates: Partial<Omit<Exam, 'id'>>) => {
-    setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-  }, []);
+  const addStudyLog = useCallback(async (log: Omit<StudyLog, 'id'>) => {
+    if (!user) return;
+    const { data } = await supabase.from('study_logs').insert({
+      user_id: user.id,
+      subject_id: log.subjectId,
+      topic_id: log.topicId,
+      topic_name: log.topicName,
+      date: log.date,
+      time_studied_seconds: log.timeStudiedSeconds,
+      questions_correct: log.questionsCorrect,
+      questions_wrong: log.questionsWrong,
+      schedule_entry_id: log.scheduleEntryId,
+    }).select('id').single();
+    if (data) {
+      setStudyLogs(prev => [...prev, { ...log, id: data.id }]);
+    }
+  }, [user]);
 
   const getTopicStats = useCallback((topicId: string): TopicStats => {
     const logs = studyLogs.filter(l => l.topicId === topicId);
@@ -192,47 +505,42 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     return { total, correct, wrong, percentage: total > 0 ? (correct / total) * 100 : -1 };
   }, [studyLogs]);
 
-  const addCycleEntry = useCallback((subjectId: string, plannedMinutes: number) => {
-    setCycleEntries(prev => [...prev, {
-      id: crypto.randomUUID(),
-      subjectId,
-      plannedMinutes,
-      order: prev.length
-    }]);
-  }, []);
+  const addExam = useCallback(async (exam: Omit<Exam, 'id'>) => {
+    if (!user) return;
+    const { data } = await supabase.from('exams').insert({
+      user_id: user.id,
+      name: exam.name,
+      date: exam.date,
+      subject_ids: exam.subjectIds,
+      notes: exam.notes,
+      url: exam.url || null,
+    }).select('id').single();
+    if (data) {
+      setExams(prev => [...prev, { ...exam, id: data.id }]);
+    }
+  }, [user]);
 
-  const removeCycleEntry = useCallback((id: string) => {
-    setCycleEntries(prev => {
-      const filtered = prev.filter(e => e.id !== id);
-      return filtered.map((e, idx) => ({ ...e, order: idx }));
-    });
-    setActiveCycleIndex(prev => prev > 0 ? prev - 1 : 0);
-  }, []);
+  const removeExam = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('exams').delete().eq('id', id);
+    setExams(prev => prev.filter(e => e.id !== id));
+  }, [user]);
 
-  const reorderCycleEntries = useCallback((startIndex: number, endIndex: number) => {
-    setCycleEntries(prev => {
-      const result = Array.from(prev);
-      const [removed] = result.splice(startIndex, 1);
-      result.splice(endIndex, 0, removed);
-      return result.map((e, idx) => ({ ...e, order: idx }));
-    });
-  }, []);
-
-  const advanceCycle = useCallback(() => {
-    setActiveCycleIndex(prev => {
-      if (cycleEntries.length === 0) return 0;
-      const nextIndex = (prev + 1) % cycleEntries.length;
-      if (nextIndex === 0 && cycleEntries.length > 0) {
-        setCompletedCyclesCount(c => c + 1);
-        setCycleEntries(cycles => cycles.map(c => ({ ...c, id: crypto.randomUUID() })));
-      }
-      return nextIndex;
-    });
-  }, [cycleEntries.length]);
+  const updateExam = useCallback(async (id: string, updates: Partial<Omit<Exam, 'id'>>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.subjectIds !== undefined) dbUpdates.subject_ids = updates.subjectIds;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.url !== undefined) dbUpdates.url = updates.url;
+    await supabase.from('exams').update(dbUpdates).eq('id', id);
+    setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  }, [user]);
 
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams,
+      subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, loading,
       addSubject, updateSubject, removeSubject, addTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
@@ -243,6 +551,15 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       {children}
     </StudyContext.Provider>
   );
+}
+
+function loadLS<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export function useStudy() {
