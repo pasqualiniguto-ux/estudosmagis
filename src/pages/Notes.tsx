@@ -6,13 +6,12 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List } from 'lucide-react';
+import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List, Type } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { NoteBlock } from '@/types/study';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Type, TextSize } from 'lucide-react';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote, noteFont, noteSize, setNoteFont, setNoteSize } = useStudy();
@@ -28,9 +27,25 @@ export default function Notes() {
   const [isSaving, setIsSaving] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
+  // --- SELECTION & DRAG STATE ---
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const selectedNote = useMemo(() => 
     notes.find(n => n.id === selectedNoteId), 
   [notes, selectedNoteId]);
+
+  const selectedIndices = useMemo(() => {
+    if (selectionStart === null || selectionEnd === null) return [];
+    const start = Math.min(selectionStart, selectionEnd);
+    const end = Math.max(selectionStart, selectionEnd);
+    const indices = [];
+    for (let i = start; i <= end; i++) indices.push(i);
+    return indices;
+  }, [selectionStart, selectionEnd]);
 
   // Sync state when selected note changes
   useEffect(() => {
@@ -39,18 +54,16 @@ export default function Notes() {
       setLocalSubjectId(selectedNote.subjectId);
       
       try {
-        // Try to parse JSON blocks
         const parsed = JSON.parse(selectedNote.content);
         if (Array.isArray(parsed)) {
           setBlocks(parsed);
         } else {
-          throw new Error('Not an array');
+          throw new Error();
         }
       } catch (e) {
-        // Fallback or Migration: Convert plain text to blocks
         const lines = selectedNote.content.split('\n');
         const initialBlocks: NoteBlock[] = lines.map((line, i) => ({
-          id: `initial-${i}-${Date.now()}`,
+          id: `block-${i}-${Date.now()}`,
           text: line,
           level: 0,
           collapsed: false
@@ -62,6 +75,8 @@ export default function Notes() {
       setBlocks([]);
       setLocalSubjectId(undefined);
     }
+    setSelectionStart(null);
+    setSelectionEnd(null);
   }, [selectedNoteId]);
 
   // Auto-save logic
@@ -70,7 +85,6 @@ export default function Notes() {
 
     const contentJson = JSON.stringify(blocks);
     
-    // Check if anything changed
     if (selectedNote && 
         localTitle === selectedNote.title && 
         contentJson === selectedNote.content && 
@@ -94,12 +108,13 @@ export default function Notes() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [localTitle, blocks, localSubjectId, selectedNoteId, updateNote]);
+  }, [localTitle, blocks, localSubjectId, selectedNoteId]);
 
   const filteredNotes = useMemo(() => {
     return notes.filter(n => {
-      const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           n.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const titleMatches = n.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const contentMatches = n.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = titleMatches || contentMatches;
       const matchesSubject = filterSubjectId === 'all' || n.subjectId === filterSubjectId;
       return matchesSearch && matchesSubject;
     });
@@ -114,25 +129,60 @@ export default function Notes() {
     }
   };
 
-  const handleDeleteNote = async (id: string) => {
+  const handleDeleteNote = async (id: string | null) => {
+    if (!id) return;
     if (confirm('Deseja excluir esta nota?')) {
       await removeNote(id);
       if (selectedNoteId === id) setSelectedNoteId(null);
     }
   };
 
-  // --- OUTLINER LOGIC ---
-  const updateBlock = (index: number, updates: Partial<NoteBlock>) => {
-    setBlocks(prev => prev.map((b, i) => i === index ? { ...b, ...updates } : b));
+  // --- HIERARCHY LOGIC ---
+  const getSubtreeRange = (startIndex: number) => {
+    const parentLevel = blocks[startIndex].level;
+    let endIndex = startIndex;
+    for (let i = startIndex + 1; i < blocks.length; i++) {
+      if (blocks[i].level > parentLevel) {
+        endIndex = i;
+      } else {
+        break;
+      }
+    }
+    return { start: startIndex, end: endIndex };
   };
 
+  // --- OUTLINER EVENT HANDLERS ---
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    // If multiple blocks are selected
+    if (selectedIndices.length > 0) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const diff = e.shiftKey ? -1 : 1;
+        setBlocks(prev => prev.map((b, i) => {
+          if (selectedIndices.includes(i)) {
+            const newLevel = Math.max(0, b.level + diff);
+            return { ...b, level: newLevel };
+          }
+          return b;
+        }));
+        return;
+      }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        if (confirm(`Deseja excluir os ${selectedIndices.length} blocos selecionados?`)) {
+          setBlocks(prev => prev.filter((_, i) => !selectedIndices.includes(i)));
+          setSelectionStart(null);
+          setSelectionEnd(null);
+        }
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      
-      // Smart Enter: If current line is empty and indented, outdent instead of new line
+      // Smart Enter: Outdent if line is empty
       if (blocks[index].text.trim() === '' && blocks[index].level > 0) {
-        updateBlock(index, { level: blocks[index].level - 1 });
+        setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: b.level - 1 } : b));
         return;
       }
 
@@ -148,18 +198,14 @@ export default function Notes() {
       setFocusedIndex(index + 1);
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      if (e.shiftKey) {
-        // Outdent
-        if (blocks[index].level > 0) {
-          updateBlock(index, { level: blocks[index].level - 1 });
-        }
-      } else {
-        // Indent
-        const prevBlock = blocks[index - 1];
-        if (prevBlock && blocks[index].level <= prevBlock.level) {
-          updateBlock(index, { level: blocks[index].level + 1 });
-        }
-      }
+      const diff = e.shiftKey ? -1 : 1;
+      const prevBlock = blocks[index - 1];
+      const newLevel = Math.max(0, blocks[index].level + diff);
+      
+      // Constraint: can't indent more than prev level + 1
+      if (diff > 0 && prevBlock && newLevel > prevBlock.level + 1) return;
+      
+      setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: newLevel } : b));
     } else if (e.key === 'Backspace' && blocks[index].text === '' && blocks.length > 1) {
       e.preventDefault();
       const newBlocks = blocks.filter((_, i) => i !== index);
@@ -178,8 +224,70 @@ export default function Notes() {
     }
   };
 
+  // --- DRAG & DROP & SELECTION EVENTS ---
+  const handleMouseDown = (e: React.MouseEvent, index: number) => {
+    // Selection starts only on handle/whitespace
+    if ((e.target as HTMLElement).closest('.drag-handle')) {
+      setSelectionStart(index);
+      setSelectionEnd(index);
+      setIsSelecting(true);
+      
+      // Cleanup any active text selection
+      window.getSelection()?.removeAllRanges();
+    }
+  };
+
+  const handleMouseEnter = (index: number) => {
+    if (isSelecting) {
+      setSelectionEnd(index);
+    }
+    if (draggedIndex !== null) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsSelecting(false);
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    // Visual ghost element (optional, browser handles basic one)
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    // Identify subtree for the dragged item
+    const subtree = getSubtreeRange(draggedIndex);
+    const movingCount = subtree.end - subtree.start + 1;
+    const blocksToMove = blocks.slice(subtree.start, subtree.end + 1);
+
+    const newBlocks = [...blocks];
+    // Remove the blocks first
+    newBlocks.splice(subtree.start, movingCount);
+    
+    // Adjust target index if we removed blocks before it
+    let adjustedTargetIndex = targetIndex;
+    if (subtree.start < targetIndex) {
+      adjustedTargetIndex = targetIndex - movingCount + 1;
+    }
+
+    // Insert at target
+    newBlocks.splice(adjustedTargetIndex, 0, ...blocksToMove);
+    
+    setBlocks(newBlocks);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const isVisible = (index: number) => {
-    // Check if any ancestor is collapsed
     let currentLevel = blocks[index].level;
     for (let i = index - 1; i >= 0; i--) {
       if (blocks[i].level < currentLevel) {
@@ -190,13 +298,11 @@ export default function Notes() {
     return true;
   };
 
-  const hasChildren = (index: number) => {
-    const nextBlock = blocks[index + 1];
-    return nextBlock && nextBlock.level > blocks[index].level;
-  };
-
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20">
+    <div 
+      className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20" 
+      onMouseUp={handleMouseUp}
+    >
       <AppNavigation />
       
       <main className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
@@ -214,12 +320,7 @@ export default function Notes() {
                     <Plus className="h-5 w-5" />
                   </Button>
                 </div>
-                <Input 
-                  placeholder="Buscar..." 
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="h-9 bg-background/50"
-                />
+                <Input placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 bg-background/50" />
                 <div className="flex flex-wrap gap-1.5">
                   <Button variant={filterSubjectId === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" onClick={() => setFilterSubjectId('all')}>Tudo</Button>
                   {subjects.map(s => (
@@ -230,13 +331,21 @@ export default function Notes() {
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {filteredNotes.map(note => (
-                    <button key={note.id} onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3 rounded-lg transition-all ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
-                      <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
-                      <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}
-                      </div>
-                    </button>
+                    <div key={note.id} className="group relative">
+                      <button 
+                        onClick={() => setSelectedNoteId(note.id)} 
+                        className={`w-full text-left p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}
+                      >
+                        <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
+                        <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}
+                        </div>
+                      </button>
+                      <button onClick={() => handleDeleteNote(note.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
@@ -245,60 +354,54 @@ export default function Notes() {
 
           <ResizableHandle className="hidden md:flex" />
 
-          {/* EDITOR */}
+          {/* EDITOR AREA */}
           <ResizablePanel defaultSize={75}>
             {selectedNoteId ? (
-              <div className="flex flex-col h-full bg-background relative">
-                <div className="px-6 py-4 border-b border-border bg-card/10 flex items-center justify-between sticky top-0 z-10 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelectedNoteId(null)}>
+              <div className="flex flex-col h-full bg-background relative overflow-hidden">
+                {/* Fixed Header */}
+                <div className="px-6 py-4 border-b border-border bg-card/10 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 shrink-0" onClick={() => setSelectedNoteId(null)}>
                       <ChevronRight className="h-5 w-5 rotate-180" />
                     </Button>
-                    <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none">
+                    <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none max-w-[120px] truncate">
                       <option value="">Geral</option>
                       {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
 
-                    <Separator orientation="vertical" className="h-4 mx-1" />
+                    <Separator orientation="vertical" className="h-4 mx-1 hidden sm:block" />
 
-                    {/* Font Family Selector */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1.5 bg-muted/50">
-                          <Type className="h-3.5 w-3.5" />
-                          <span className="capitalize">{noteFont}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuLabel className="text-xs">Estilo da Fonte</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setNoteFont('sans')} className="font-sans">San Serif (Padrão)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteFont('serif')} className="font-serif">Serif (Clássico)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteFont('mono')} className="font-mono">Monospace (Código)</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="hidden sm:flex items-center gap-1.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 bg-muted/50">
+                            <Type className="h-3.5 w-3.5" />
+                            <span className="capitalize">{noteFont}</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => setNoteFont('sans')} className="font-sans">San Serif</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNoteFont('serif')} className="font-serif">Serif</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNoteFont('mono')} className="font-mono">Monospace</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                    {/* Font Size Selector */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1.5 bg-muted/50">
-                          <div className="flex items-baseline gap-0.5">
-                            <span className="text-[10px]">A</span><span className="text-sm">A</span>
-                          </div>
-                          <span className="uppercase">{noteSize}</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuLabel className="text-xs">Tamanho do Texto</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setNoteSize('sm')}>Pequeno (SM)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteSize('md')}>Médio (MD)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteSize('lg')}>Grande (LG)</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setNoteSize('xl')}>Extra Grande (XL)</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 bg-muted/50">
+                            <span className="uppercase">{noteSize}</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => setNoteSize('sm')}>Pequeno</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNoteSize('md')}>Médio</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNoteSize('lg')}>Grande</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setNoteSize('xl')}>Extra</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
-                    {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                    {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mr-2" />}
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}>
                     <Trash2 className="h-4 w-4" />
@@ -306,44 +409,55 @@ export default function Notes() {
                 </div>
 
                 <ScrollArea className="flex-1">
-                  <div className="max-w-3xl mx-auto w-full p-8 md:p-12 space-y-8">
+                  <div className="max-w-4xl mx-auto w-full p-8 md:p-14 space-y-10">
                     <input
                       type="text"
                       placeholder="Título da nota..."
-                      className="text-4xl font-extrabold bg-transparent border-none outline-none placeholder:opacity-20 w-full tracking-tight"
+                      className="text-4xl md:text-5xl font-black bg-transparent border-none outline-none placeholder:opacity-10 w-full tracking-tighter"
                       value={localTitle}
                       onChange={e => setLocalTitle(e.target.value)}
                     />
                     
-                    <div className={`space-y-0.5 ${
-                      noteFont === 'serif' ? 'font-serif' : 
-                      noteFont === 'mono' ? 'font-mono' : 'font-sans'
-                    } ${
-                      noteSize === 'sm' ? 'text-sm' :
-                      noteSize === 'lg' ? 'text-lg' :
-                      noteSize === 'xl' ? 'text-xl' : 'text-base'
-                    }`}>
+                    <div className={`space-y-0.5 select-none ${
+                        noteFont === 'serif' ? 'font-serif' : noteFont === 'mono' ? 'font-mono' : 'font-sans'
+                      } ${
+                        noteSize === 'sm' ? 'text-sm' : noteSize === 'lg' ? 'text-lg' : noteSize === 'xl' ? 'text-xl' : 'text-base'
+                      }`}>
                       {blocks.map((block, index) => {
                         if (!isVisible(index)) return null;
+                        const isSelected = selectedIndices.includes(index);
+                        const isBeingDragged = draggedIndex === index;
+                        const isOver = dragOverIndex === index;
                         
                         return (
                           <div 
                             key={block.id} 
-                            style={{ paddingLeft: `${block.level * 24}px` }}
-                            className="group flex items-start gap-1 relative"
+                            style={{ paddingLeft: `${block.level * 28}px` }}
+                            className={`group flex items-start gap-1 relative py-0.5 px-2 rounded-sm transition-all duration-150 ${
+                              isSelected ? 'bg-primary/15' : 'hover:bg-muted/30'
+                            } ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${
+                              isBeingDragged ? 'opacity-30' : ''
+                            }`}
+                            onMouseEnter={() => handleMouseEnter(index)}
+                            onMouseUp={handleMouseUp}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, index)}
                           >
-                            <div className="flex items-center h-7 w-6 shrink-0 justify-center">
-                              {hasChildren(index) ? (
-                                <button 
-                                  onClick={() => updateBlock(index, { collapsed: !block.collapsed })}
-                                  className="hover:bg-muted p-0.5 rounded transition-transform"
-                                  style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}
-                                >
-                                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                                </button>
-                              ) : (
-                                <Circle className="h-1.5 w-1.5 fill-muted-foreground/30 text-muted-foreground/30" />
-                              )}
+                            <div 
+                              className="drag-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-grab active:cursor-grabbing"
+                              onMouseDown={(e) => handleMouseDown(e, index)}
+                            >
+                              <div className="flex flex-col items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity">
+                                {blocks[index + 1]?.level > block.level ? (
+                                  <button onClick={() => setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b))} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}>
+                                    <ChevronDown className="h-4 w-4" />
+                                  </button>
+                                ) : (
+                                  <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                                )}
+                              </div>
                             </div>
                             
                             <textarea
@@ -351,20 +465,20 @@ export default function Notes() {
                               rows={1}
                               value={block.text}
                               onChange={e => {
-                                updateBlock(index, { text: e.target.value });
+                                setBlocks(prev => prev.map((b, i) => i === index ? { ...b, text: e.target.value } : b));
                                 e.target.style.height = 'auto';
                                 e.target.style.height = `${e.target.scrollHeight}px`;
                               }}
                               onKeyDown={e => handleKeyDown(e, index)}
-                              onFocus={() => setFocusedIndex(index)}
+                              onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
                               placeholder="..."
-                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed placeholder:opacity-0 focus:placeholder:opacity-20 transition-all font-medium"
+                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/20 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all font-medium select-text"
                               style={{ height: 'auto', fontSize: 'inherit' }}
                             />
                             
-                            {block.collapsed && hasChildren(index) && (
-                              <div className="absolute right-0 top-1.5 px-1.5 py-0.5 rounded bg-muted text-[10px] text-muted-foreground font-bold">
-                                +
+                            {block.collapsed && blocks[index + 1]?.level > block.level && (
+                              <div className="absolute right-2 top-2 px-1 py-0.5 rounded-full bg-primary/10 text-[9px] font-black text-primary animate-pulse">
+                                HIERARQUIA RECOLHIDA
                               </div>
                             )}
                           </div>
@@ -374,22 +488,22 @@ export default function Notes() {
                   </div>
                 </ScrollArea>
                 
-                {/* Mobile Helper Bar */}
-                <div className="md:hidden flex items-center justify-around p-2 border-t border-border bg-card/80 backdrop-blur-sm sticky bottom-0">
-                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault: () => {} } as any, focusedIndex)}>
-                    <ChevronRight className="h-4 w-4 rotate-180 mr-1" /> Desindentar
+                {/* Mobile Toolbar */}
+                <div className="md:hidden flex items-center justify-around p-3 border-t border-border bg-card/90 backdrop-blur-md sticky bottom-0 z-30">
+                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1">
+                    <ChevronRight className="h-4 w-4 rotate-180" /> Recuar
                   </Button>
-                  <Separator orientation="vertical" className="h-4" />
-                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault: () => {} } as any, focusedIndex)}>
-                    Indentar <ChevronRight className="h-4 w-4 ml-1" />
+                  <Separator orientation="vertical" className="h-6" />
+                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1">
+                    Indentar <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-30">
-                <List className="h-16 w-16 mb-4" />
-                <h3 className="text-xl font-bold">Escolha ou crie uma nota</h3>
-                <p className="max-w-xs mt-2 text-sm">Use o Tab para criar hierarquia e organizar seu conhecimento.</p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20">
+                <List className="h-24 w-24 mb-6 stroke-[1px]" />
+                <h3 className="text-2xl font-black uppercase tracking-widest">Nenhuma Nota Selecionada</h3>
+                <p className="max-w-xs mt-4 text-sm font-medium">Use a barra lateral para criar um novo caderno ou selecione um resumo existente para editar.</p>
               </div>
             )}
           </ResizablePanel>
