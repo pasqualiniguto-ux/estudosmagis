@@ -9,9 +9,11 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { Plus, Search, Trash2, NotebookPen, Clock, Folder, ChevronRight, Save, Loader2, BookOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
+  const { toast } = useToast();
   
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,12 +56,21 @@ export default function Notes() {
 
     const timer = setTimeout(async () => {
       setIsSaving(true);
-      await updateNote(selectedNoteId, {
-        title: localTitle,
-        content: localContent,
-        subjectId: localSubjectId
-      });
-      setIsSaving(false);
+      try {
+        await updateNote(selectedNoteId, {
+          title: localTitle,
+          content: localContent,
+          subjectId: localSubjectId
+        });
+      } catch (error) {
+        toast({
+          title: 'Erro ao salvar',
+          description: 'Não foi possível salvar as alterações.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsSaving(false);
+      }
     }, 1000);
 
     return () => clearTimeout(timer);
@@ -75,8 +86,16 @@ export default function Notes() {
   }, [notes, searchQuery, filterSubjectId]);
 
   const handleCreateNote = async () => {
-    const newId = await addNote(filterSubjectId === 'all' ? undefined : filterSubjectId);
-    if (newId) setSelectedNoteId(newId);
+    try {
+      const newId = await addNote(filterSubjectId === 'all' ? undefined : filterSubjectId);
+      if (newId) setSelectedNoteId(newId);
+    } catch (error: any) {
+      toast({ 
+        title: 'Erro ao criar nota', 
+        description: 'Verifique se você executou o SQL no Supabase. Erro: ' + error.message, 
+        variant: 'destructive' 
+      });
+    }
   };
 
   const handleDeleteNote = async (id: string) => {

@@ -580,24 +580,31 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const addNote = useCallback(async (subjectId?: string) => {
     if (!user) return;
-    const { data } = await supabase.from('notes').insert({
-      user_id: user.id,
-      subject_id: subjectId || null,
-      title: 'Nova Nota',
-      content: '',
-    }).select('id, created_at, updated_at').single();
-    
-    if (data) {
-      const newNote: Note = {
-        id: data.id,
-        subjectId,
+    try {
+      const { data, error } = await supabase.from('notes').insert({
+        user_id: user.id,
+        subject_id: subjectId || null,
         title: 'Nova Nota',
         content: '',
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-      setNotes(prev => [newNote, ...prev]);
-      return data.id;
+      }).select('id, created_at, updated_at').single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        const newNote: Note = {
+          id: data.id,
+          subjectId,
+          title: 'Nova Nota',
+          content: '',
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+        };
+        setNotes(prev => [newNote, ...prev]);
+        return data.id;
+      }
+    } catch (error: any) {
+      console.error('Erro ao adicionar nota:', error);
+      throw error;
     }
   }, [user]);
 
