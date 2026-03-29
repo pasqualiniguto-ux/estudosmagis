@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, getTopicStats, getSubjectStats, addStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, addTopics, updateTopic, removeTopic, getTopicStats, getSubjectStats, addStudyLog } = useStudy();
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -51,6 +51,11 @@ export default function Subjects() {
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
 
+  // Drag and drop state for topics
+  const [draggedTopicInfo, setDraggedTopicInfo] = useState<{ subjectId: string, index: number } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dragOverSubjectId, setDragOverSubjectId] = useState<string | null>(null);
+
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
     addSubject(newSubjectName.trim(), newSubjectColor);
@@ -70,7 +75,9 @@ export default function Subjects() {
     
     // Divide o texto por quebras de linha e adiciona cada linha não vazia como um novo assunto
     const lines = newTopicName.split('\n').map(t => t.trim()).filter(t => t.length > 0);
-    lines.forEach(line => addTopic(addTopicSubjectId, line));
+    if (lines.length > 0) {
+      addTopics(addTopicSubjectId, lines);
+    }
 
     setNewTopicName('');
     setAddTopicSubjectId(null);
@@ -179,6 +186,30 @@ export default function Subjects() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const { reorderTopics } = useStudy();
+
+  const handleTopicDragStart = (e: React.DragEvent, subjectId: string, index: number) => {
+    setDraggedTopicInfo({ subjectId, index });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleTopicDragOver = (e: React.DragEvent, subjectId: string, index: number) => {
+    e.preventDefault();
+    if (draggedTopicInfo?.subjectId !== subjectId) return;
+    setDragOverIndex(index);
+    setDragOverSubjectId(subjectId);
+  };
+
+  const handleTopicDrop = (e: React.DragEvent, subjectId: string, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedTopicInfo && draggedTopicInfo.subjectId === subjectId && draggedTopicInfo.index !== targetIndex) {
+      reorderTopics(subjectId, draggedTopicInfo.index, targetIndex);
+    }
+    setDraggedTopicInfo(null);
+    setDragOverIndex(null);
+    setDragOverSubjectId(null);
   };
 
   return (
@@ -295,10 +326,24 @@ export default function Subjects() {
                     {subject.topics.length === 0 && (
                       <p className="text-xs text-muted-foreground p-3">Nenhum assunto cadastrado.</p>
                     )}
-                    {subject.topics.map(topic => {
+                    {subject.topics.map((topic, index) => {
                       const stats = getTopicStats(topic.id);
+                      const isDragged = draggedTopicInfo?.subjectId === subject.id && draggedTopicInfo.index === index;
+                      const isOver = dragOverSubjectId === subject.id && dragOverIndex === index;
+                      
                       return (
-                        <div key={topic.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors">
+                        <div 
+                          key={topic.id} 
+                          className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-all ${isDragged ? 'opacity-30' : ''} ${isOver && !isDragged ? 'border-t-2 border-primary pt-1.5' : ''}`}
+                          draggable={true}
+                          onDragStart={(e) => handleTopicDragStart(e, subject.id, index)}
+                          onDragOver={(e) => handleTopicDragOver(e, subject.id, index)}
+                          onDrop={(e) => handleTopicDrop(e, subject.id, index)}
+                          onDragEnd={() => { setDraggedTopicInfo(null); setDragOverIndex(null); setDragOverSubjectId(null); }}
+                        >
+                          <div className="cursor-grab active:cursor-grabbing p-1 opacity-20 hover:opacity-100 transition-opacity">
+                            <GripVertical className="h-3.5 w-3.5" />
+                          </div>
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {stats.total > 0 && (
