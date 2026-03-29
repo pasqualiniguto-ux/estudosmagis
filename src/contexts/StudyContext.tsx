@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
-import { Subject, Topic, ScheduleEntry, CycleEntry, DailyProgress, StudyLog, Exam } from '@/types/study';
+import { Subject, Topic, ScheduleEntry, CycleEntry, DailyProgress, StudyLog, Exam, Note } from '@/types/study';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +19,7 @@ interface StudyContextType {
   dailyProgress: DailyProgress[];
   studyLogs: StudyLog[];
   exams: Exam[];
+  notes: Note[];
   loading: boolean;
   addSubject: (name: string, color?: string) => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
@@ -42,6 +43,9 @@ interface StudyContextType {
   addExam: (exam: Omit<Exam, 'id'>) => void;
   removeExam: (id: string) => void;
   updateExam: (id: string, exam: Partial<Omit<Exam, 'id'>>) => void;
+  addNote: (subjectId?: string) => Promise<string | undefined>;
+  updateNote: (id: string, updates: Partial<Note>) => void;
+  removeNote: (id: string) => void;
 }
 
 const StudyContext = createContext<StudyContextType | null>(null);
@@ -56,6 +60,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>([]);
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const migrationDone = useRef(false);
 
@@ -70,6 +75,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       setDailyProgress([]);
       setStudyLogs([]);
       setExams([]);
+      setNotes([]);
       setLoading(false);
       migrationDone.current = false;
       return;
@@ -205,7 +211,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
 
     // Now load everything
-    const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, settingsRes] = await Promise.all([
+    const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, notesRes, settingsRes] = await Promise.all([
       supabase.from('subjects').select('*').eq('user_id', user.id),
       supabase.from('topics').select('*').eq('user_id', user.id),
       supabase.from('schedule_entries').select('*').eq('user_id', user.id),
@@ -213,6 +219,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       supabase.from('daily_progress').select('*').eq('user_id', user.id),
       supabase.from('study_logs').select('*').eq('user_id', user.id),
       supabase.from('exams').select('*').eq('user_id', user.id),
+      supabase.from('notes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
     ]);
 
@@ -280,6 +287,15 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subjectIds: e.subject_ids || [],
       notes: e.notes,
       url: e.url,
+    })));
+
+    setNotes((notesRes.data || []).map((n: any) => ({
+      id: n.id,
+      subjectId: n.subject_id || undefined,
+      title: n.title,
+      content: n.content || '',
+      createdAt: n.created_at,
+      updatedAt: n.updated_at,
     })));
 
     if (settingsRes.data) {
@@ -562,15 +578,56 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
   }, [user]);
 
+  const addNote = useCallback(async (subjectId?: string) => {
+    if (!user) return;
+    const { data } = await supabase.from('notes').insert({
+      user_id: user.id,
+      subject_id: subjectId || null,
+      title: 'Nova Nota',
+      content: '',
+    }).select('id, created_at, updated_at').single();
+    
+    if (data) {
+      const newNote: Note = {
+        id: data.id,
+        subjectId,
+        title: 'Nova Nota',
+        content: '',
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+      setNotes(prev => [newNote, ...prev]);
+      return data.id;
+    }
+  }, [user]);
+
+  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.content !== undefined) dbUpdates.content = updates.content;
+    if (updates.subjectId !== undefined) dbUpdates.subject_id = updates.subjectId || null;
+    
+    await supabase.from('notes').update(dbUpdates).eq('id', id);
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+  }, [user]);
+
+  const removeNote = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('notes').delete().eq('id', id);
+    setNotes(prev => prev.filter(n => n.id !== id));
+  }, [user]);
+
   return (
     <StudyContext.Provider value={{
-      subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, loading,
+      subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
+      addNote, updateNote, removeNote,
     }}>
       {children}
     </StudyContext.Provider>

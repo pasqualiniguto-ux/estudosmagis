@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarDays, BookOpen, BarChart3, Sun, Moon, LogOut, RotateCw } from 'lucide-react';
+import { CalendarDays, BookOpen, BarChart3, Sun, Moon, LogOut, RotateCw, NotebookPen } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/', icon: CalendarDays, label: 'Semana' },
   { to: '/ciclo', icon: RotateCw, label: 'Ciclo' },
   { to: '/materias', icon: BookOpen, label: 'Matérias' },
+  { to: '/caderno', icon: NotebookPen, label: 'Caderno' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
 ];
 
