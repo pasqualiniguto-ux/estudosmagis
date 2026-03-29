@@ -20,13 +20,13 @@ export default function StudyStreak() {
 
     if (studiedDates.size === 0) return 0;
 
-    const today = new Date();
+    const today = nowBrasilia();
     today.setHours(0, 0, 0, 0);
     let count = 0;
     const d = new Date(today);
 
     while (true) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = toDateStr(d);
       if (studiedDates.has(dateStr)) {
         count++;
         d.setDate(d.getDate() - 1);
