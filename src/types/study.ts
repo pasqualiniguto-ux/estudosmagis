@@ -12,7 +12,6 @@ export interface Topic {
   name: string;
   pdfUrl?: string;
   webUrl?: string;
-  sort_order?: number;
 }
 
 export interface ScheduleEntry {

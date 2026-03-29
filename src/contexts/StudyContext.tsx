@@ -25,10 +25,8 @@ interface StudyContextType {
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
   addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
-  addTopics: (subjectId: string, names: string[]) => void;
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
-  reorderTopics: (subjectId: string, startIndex: number, endIndex: number) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   removeScheduleEntry: (id: string) => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
@@ -223,7 +221,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     // Now load everything
     const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, notesRes, settingsRes] = await Promise.all([
       supabase.from('subjects').select('*').eq('user_id', user.id),
-      supabase.from('topics').select('*').eq('user_id', user.id).order('sort_order'),
+      supabase.from('topics').select('*').eq('user_id', user.id),
       supabase.from('schedule_entries').select('*').eq('user_id', user.id),
       supabase.from('cycle_entries').select('*').eq('user_id', user.id).order('sort_order'),
       supabase.from('daily_progress').select('*').eq('user_id', user.id),
@@ -241,8 +239,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         id: t.id,
         name: t.name,
         pdfUrl: t.pdf_url || undefined,
-        webUrl: t.web_url || undefined,
-        sort_order: t.sort_order || 0
+        webUrl: t.web_url || undefined
       });
     });
 
@@ -352,56 +349,17 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
     if (!user) return;
-    
-    // Calculate new sort_order
-    const subject = subjects.find(s => s.id === subjectId);
-    const order = subject?.topics.length || 0;
-
     const { data } = await supabase.from('topics').insert({
-      subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null, sort_order: order
+      subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null
     }).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
         s.id === subjectId
-          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl, sort_order: order }] }
+          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl }] }
           : s
       ));
     }
-  }, [user, subjects]);
-
-  const addTopics = useCallback(async (subjectId: string, names: string[]) => {
-    if (!user || names.length === 0) return;
-    
-    const subject = subjects.find(s => s.id === subjectId);
-    let startOrder = subject?.topics.length || 0;
-
-    const rows = names.map((name, idx) => ({
-      subject_id: subjectId,
-      user_id: user.id,
-      name,
-      sort_order: startOrder + idx
-    }));
-
-    const { data, error } = await supabase.from('topics').insert(rows).select('id, name, sort_order');
-    if (error) {
-      console.error('Error adding topics:', error);
-      return;
-    }
-
-    if (data) {
-      const newTopics: Topic[] = data.map(t => ({
-        id: t.id,
-        name: t.name,
-        sort_order: t.sort_order
-      }));
-
-      setSubjects(prev => prev.map(s =>
-        s.id === subjectId
-          ? { ...s, topics: [...s.topics, ...newTopics].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)) }
-          : s
-      ));
-    }
-  }, [user, subjects]);
+  }, [user]);
 
   const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
     if (!user) return;
@@ -425,33 +383,6 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         ? { ...s, topics: s.topics.filter(t => t.id !== topicId) }
         : s
     ));
-  }, [user]);
-
-  const reorderTopics = useCallback(async (subjectId: string, startIndex: number, endIndex: number) => {
-    if (!user) return;
-    
-    setSubjects(prev => {
-      const newSubjects = [...prev];
-      const subjectIndex = newSubjects.findIndex(s => s.id === subjectId);
-      if (subjectIndex === -1) return prev;
-      
-      const subject = { ...newSubjects[subjectIndex] };
-      const newTopics = Array.from(subject.topics);
-      const [removed] = newTopics.splice(startIndex, 1);
-      newTopics.splice(endIndex, 0, removed);
-      
-      // Update sort orders
-      const reorderedTopics = newTopics.map((t, idx) => ({ ...t, sort_order: idx }));
-      
-      // Sync with DB
-      reorderedTopics.forEach(t => {
-        supabase.from('topics').update({ sort_order: t.sort_order }).eq('id', t.id);
-      });
-      
-      subject.topics = reorderedTopics;
-      newSubjects[subjectIndex] = subject;
-      return newSubjects;
-    });
   }, [user]);
 
   const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
@@ -720,7 +651,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       noteFont, noteSize, setNoteFont, setNoteSize,
-      addSubject, updateSubject, removeSubject, addTopic, addTopics, updateTopic, removeTopic, reorderTopics,
+      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
