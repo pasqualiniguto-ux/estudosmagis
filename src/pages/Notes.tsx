@@ -247,15 +247,10 @@ export default function Notes() {
 
     } else if (e.key === 'Backspace') {
       const el = blockRefs.current[index];
-      // contentEditable can contain <br> or hidden chars when visually "empty"
-      const content = el?.innerText.replace(/\n/g, '').trim() || '';
-      
-      if (content === '' && blocks.length > 1) {
+      const plain = el?.innerText || '';
+      if (plain === '' && blocks.length > 1) {
         e.preventDefault();
-        // Remove current block
-        const newBlocks = blocks.filter((_, i) => i !== index);
-        setBlocks(newBlocks);
-        // Move focus to previous block
+        setBlocks(blocks.filter((_, i) => i !== index));
         setFocusedIndex(index > 0 ? index - 1 : 0);
       }
     } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
