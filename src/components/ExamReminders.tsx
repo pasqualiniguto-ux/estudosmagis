@@ -50,7 +50,7 @@ export default function ExamReminders() {
   };
 
   const getDaysLeft = (dateStr: string) => {
-    const diff = differenceInDays(parseISO(dateStr), new Date());
+    const diff = differenceInDays(parseISO(dateStr), nowBrasilia());
     if (diff < 0) return 'Já passou';
     if (diff === 0) return 'Hoje!';
     if (diff === 1) return '1 dia';
