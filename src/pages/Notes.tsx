@@ -127,6 +127,13 @@ export default function Notes() {
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      
+      // Smart Enter: If current line is empty and indented, outdent instead of new line
+      if (blocks[index].text.trim() === '' && blocks[index].level > 0) {
+        updateBlock(index, { level: blocks[index].level - 1 });
+        return;
+      }
+
       const newBlock: NoteBlock = {
         id: `block-${Date.now()}`,
         text: '',
