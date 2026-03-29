@@ -59,11 +59,18 @@ export interface Exam {
   url?: string;
 }
 
+export interface NoteBlock {
+  id: string;
+  text: string;
+  level: number;
+  collapsed?: boolean;
+}
+
 export interface Note {
   id: string;
   subjectId?: string;
   title: string;
-  content: string;
+  content: string; // Will store JSON.stringify(NoteBlock[])
   createdAt: string;
   updatedAt: string;
 }
