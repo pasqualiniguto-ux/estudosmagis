@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List, Type, Heading1, Heading2, Heading3, AlignLeft } from 'lucide-react';
+import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List, Type, LayoutList, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { NoteBlock } from '@/types/study';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote, noteFont, noteSize, setNoteFont, setNoteSize } = useStudy();
@@ -33,7 +34,7 @@ export default function Notes() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [draggableIndex, setDraggableIndex] = useState<number | null>(null); // Which block is currently draggable
+  const [draggableIndex, setDraggableIndex] = useState<number | null>(null);
   const isDraggingFromGrip = useRef(false);
 
   const selectedNote = useMemo(() => 
@@ -48,6 +49,12 @@ export default function Notes() {
     for (let i = start; i <= end; i++) indices.push(i);
     return indices;
   }, [selectionStart, selectionEnd]);
+
+  const tocItems = useMemo(() => {
+    return blocks
+      .map((b, i) => ({ ...b, index: i }))
+      .filter(b => b.type && b.type !== 'text' && b.text.trim() !== '');
+  }, [blocks]);
 
   // Sync state when selected note changes
   useEffect(() => {
@@ -84,15 +91,8 @@ export default function Notes() {
   // Auto-save logic
   useEffect(() => {
     if (!selectedNoteId) return;
-
     const contentJson = JSON.stringify(blocks);
-    
-    if (selectedNote && 
-        localTitle === selectedNote.title && 
-        contentJson === selectedNote.content && 
-        localSubjectId === selectedNote.subjectId) {
-      return;
-    }
+    if (selectedNote && localTitle === selectedNote.title && contentJson === selectedNote.content && localSubjectId === selectedNote.subjectId) return;
 
     const timer = setTimeout(async () => {
       setIsSaving(true);
@@ -108,7 +108,6 @@ export default function Notes() {
         setIsSaving(false);
       }
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [localTitle, blocks, localSubjectId, selectedNoteId]);
 
@@ -116,10 +115,8 @@ export default function Notes() {
     return notes.filter(n => {
       const titleMatches = n.title.toLowerCase().includes(searchQuery.toLowerCase());
       const contentMatches = n.content.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSearch = titleMatches || contentMatches;
-      const matchesSubject = filterSubjectId === 'all' || n.subjectId === filterSubjectId;
-      return matchesSearch && matchesSubject;
-    });
+      return titleMatches || contentMatches;
+    }).filter(n => filterSubjectId === 'all' || n.subjectId === filterSubjectId);
   }, [notes, searchQuery, filterSubjectId]);
 
   const handleCreateNote = async () => {
@@ -139,41 +136,38 @@ export default function Notes() {
     }
   };
 
-  // --- HIERARCHY LOGIC ---
   const getSubtreeRange = (startIndex: number) => {
     const parentLevel = blocks[startIndex].level;
     let endIndex = startIndex;
     for (let i = startIndex + 1; i < blocks.length; i++) {
-      if (blocks[i].level > parentLevel) {
-        endIndex = i;
-      } else {
-        break;
-      }
+      if (blocks[i].level > parentLevel) endIndex = i; else break;
     }
     return { start: startIndex, end: endIndex };
   };
 
-  // --- OUTLINER EVENT HANDLERS ---
+  const scrollToBlock = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary/50');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary/50'), 2000);
+    }
+  };
+
+  // --- HIERARCHY / BLOCK HANDLERS ---
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (selectedIndices.length > 0) {
       if (e.key === 'Tab') {
         e.preventDefault();
         const diff = e.shiftKey ? -1 : 1;
-        setBlocks(prev => prev.map((b, i) => {
-          if (selectedIndices.includes(i)) {
-            const newLevel = Math.max(0, b.level + diff);
-            return { ...b, level: newLevel };
-          }
-          return b;
-        }));
+        setBlocks(prev => prev.map((b, i) => selectedIndices.includes(i) ? { ...b, level: Math.max(0, b.level + diff) } : b));
         return;
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         if (confirm(`Deseja excluir os ${selectedIndices.length} blocos selecionados?`)) {
           setBlocks(prev => prev.filter((_, i) => !selectedIndices.includes(i)));
-          setSelectionStart(null);
-          setSelectionEnd(null);
+          setSelectionStart(null); setSelectionEnd(null);
         }
         return;
       }
@@ -185,13 +179,7 @@ export default function Notes() {
         setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: b.level - 1 } : b));
         return;
       }
-
-      const newBlock: NoteBlock = {
-        id: `block-${Date.now()}`,
-        text: '',
-        level: blocks[index].level,
-        collapsed: false
-      };
+      const newBlock: NoteBlock = { id: `block-${Date.now()}`, text: '', level: blocks[index].level, collapsed: false };
       const newBlocks = [...blocks];
       newBlocks.splice(index + 1, 0, newBlock);
       setBlocks(newBlocks);
@@ -205,31 +193,21 @@ export default function Notes() {
       setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: newLevel } : b));
     } else if (e.key === 'Backspace' && blocks[index].text === '' && blocks.length > 1) {
       e.preventDefault();
-      const newBlocks = blocks.filter((_, i) => i !== index);
-      setBlocks(newBlocks);
+      setBlocks(blocks.filter((_, i) => i !== index));
       setFocusedIndex(index > 0 ? index - 1 : 0);
-    } else if (e.key === 'ArrowUp') {
-      if (index > 0) {
-        e.preventDefault();
-        setFocusedIndex(index - 1);
-      }
-    } else if (e.key === 'ArrowDown') {
-      if (index < blocks.length - 1) {
-        e.preventDefault();
-        setFocusedIndex(index + 1);
-      }
+    } else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      const nextIdx = e.key === 'ArrowUp' ? Math.max(0, index - 1) : Math.min(blocks.length - 1, index + 1);
+      setFocusedIndex(nextIdx);
     }
   };
 
-  // --- MOUSE EVENTS ---
   const handleMouseDownForSelection = (e: React.MouseEvent, index: number) => {
     if ((e.target as HTMLElement).closest('.grip-handle')) {
-      // Grip: enable drag on this specific block
       isDraggingFromGrip.current = true;
       setDraggableIndex(index);
       return;
     }
-    // Bullet/margin: start multi-select
     isDraggingFromGrip.current = false;
     setDraggableIndex(null);
     setSelectionStart(index);
@@ -239,10 +217,7 @@ export default function Notes() {
   };
 
   const handlePointerMove = (e: React.PointerEvent, index: number) => {
-    // PointerMove is not blocked by native drag — use it for selection tracking
-    if (isSelecting && e.buttons === 1) {
-      setSelectionEnd(index);
-    }
+    if (isSelecting && e.buttons === 1) setSelectionEnd(index);
   };
 
   const handleMouseEnter = (index: number) => {
@@ -250,16 +225,11 @@ export default function Notes() {
   };
 
   const handleMouseUp = () => {
-    setIsSelecting(false);
-    setDraggableIndex(null);
-    isDraggingFromGrip.current = false;
+    setIsSelecting(false); setDraggableIndex(null); isDraggingFromGrip.current = false;
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
-    if (!isDraggingFromGrip.current) {
-      e.preventDefault();
-      return;
-    }
+    if (!isDraggingFromGrip.current) { e.preventDefault(); return; }
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index.toString());
@@ -267,11 +237,7 @@ export default function Notes() {
 
   const handleDrop = (e: React.DragEvent, targetIndex: number) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === targetIndex) {
-      setDraggedIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
+    if (draggedIndex === null || draggedIndex === targetIndex) { setDraggedIndex(null); setDragOverIndex(null); return; }
     const subtree = getSubtreeRange(draggedIndex);
     const movingCount = subtree.end - subtree.start + 1;
     const blocksToMove = blocks.slice(subtree.start, subtree.end + 1);
@@ -281,8 +247,7 @@ export default function Notes() {
     if (subtree.start < targetIndex) adjustedTargetIndex = targetIndex - movingCount + 1;
     newBlocks.splice(adjustedTargetIndex, 0, ...blocksToMove);
     setBlocks(newBlocks);
-    setDraggedIndex(null);
-    setDragOverIndex(null);
+    setDraggedIndex(null); setDragOverIndex(null);
   };
 
   const isVisible = (index: number) => {
@@ -296,46 +261,35 @@ export default function Notes() {
     return true;
   };
 
-  // --- BLOCK TYPE HELPERS ---
   const getBlockTypeStyles = (type?: string) => {
     switch (type) {
-      case 'h1': return 'text-3xl font-extrabold tracking-tight leading-tight';
-      case 'h2': return 'text-xl font-bold tracking-tight';
-      case 'h3': return 'text-base font-semibold text-foreground/70';
+      case 'h1': return 'text-4xl md:text-5xl font-black tracking-tighter leading-none mb-2 mt-4 text-foreground';
+      case 'h2': return 'text-2xl md:text-3xl font-bold tracking-tight mb-1 mt-3 text-foreground/90';
+      case 'h3': return 'text-xl font-semibold tracking-tight mt-2 text-foreground/80';
       default: return 'font-medium';
     }
   };
 
   const getBlockTypePlaceholder = (type?: string) => {
     switch (type) {
-      case 'h1': return 'Título 1';
-      case 'h2': return 'Título 2';
-      case 'h3': return 'Título 3';
-      default: return '...';
+      case 'h1': return 'Título 1'; case 'h2': return 'Título 2'; case 'h3': return 'Título 3'; default: return '...';
     }
   };
-
-  const blockTypeOptions: { type: NoteBlock['type']; label: string }[] = [
-    { type: 'text', label: 'Texto' },
-    { type: 'h1',   label: 'H1 — Título' },
-    { type: 'h2',   label: 'H2 — Subtítulo' },
-    { type: 'h3',   label: 'H3 — Seção' },
-  ];
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20" onMouseUp={handleMouseUp}>
       <AppNavigation />
       <main className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={25} minSize={20} className="hidden md:block">
+          <ResizablePanel defaultSize={20} minSize={15} className="hidden md:block">
             <div className="flex flex-col h-full bg-card/30 border-r border-border">
               <div className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="font-bold text-lg flex items-center gap-2"><NotebookPen className="h-5 w-5 text-primary" /> Caderno</h2>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={handleCreateNote}><Plus className="h-5 w-5" /></Button>
                 </div>
-                <Input placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 bg-background/50" />
-                <div className="flex flex-wrap gap-1.5">
+                <Input placeholder="Buscar notas..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 bg-background/50" />
+                <div className="flex flex-wrap gap-1.5 pt-2">
                   <Button variant={filterSubjectId === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" onClick={() => setFilterSubjectId('all')}>Tudo</Button>
                   {subjects.map(s => <Button key={s.id} variant={filterSubjectId === s.id ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" style={filterSubjectId === s.id ? { backgroundColor: s.color } : {}} onClick={() => setFilterSubjectId(s.id)}>{s.name}</Button>)}
                 </div>
@@ -358,7 +312,7 @@ export default function Notes() {
 
           <ResizableHandle className="hidden md:flex" />
 
-          <ResizablePanel defaultSize={75}>
+          <ResizablePanel defaultSize={80}>
             {selectedNoteId ? (
               <div className="flex flex-col h-full bg-background relative overflow-hidden">
                 <div className="px-6 py-4 border-b border-border bg-card/10 flex items-center justify-between z-20 backdrop-blur-md sticky top-0">
@@ -381,7 +335,49 @@ export default function Notes() {
                     </div>
                     {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mr-2" />}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}><Trash2 className="h-4 w-4" /></Button>
+
+                  <div className="flex items-center gap-2">
+                    {/* DISCREET TOC BUTTON */}
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 gap-2 text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors">
+                          <LayoutList className="h-4 w-4" />
+                          <span className="hidden sm:inline">Índice</span>
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                        <SheetHeader>
+                          <SheetTitle className="flex items-center gap-2">
+                            <Hash className="h-5 w-5 text-primary" />
+                            Sumário da Nota
+                          </SheetTitle>
+                          <SheetDescription>Navegue rapidamente entre os títulos da sua anotação.</SheetDescription>
+                        </SheetHeader>
+                        <ScrollArea className="h-[calc(100vh-120px)] mt-6 pr-4">
+                          <div className="space-y-1">
+                            {tocItems.map((item) => (
+                              <button 
+                                key={item.id}
+                                onClick={() => scrollToBlock(item.id)}
+                                className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm truncate ${
+                                  item.type === 'h1' ? 'font-black pl-2 border-l-2 border-primary/40' : 
+                                  item.type === 'h2' ? 'font-bold pl-6 text-foreground/80' : 
+                                  'font-medium pl-10 text-foreground/60 text-xs'
+                                }`}
+                              >
+                                {item.text}
+                              </button>
+                            ))}
+                            {tocItems.length === 0 && (
+                              <p className="text-center text-muted-foreground text-xs py-10 opacity-40 italic">Nenhum título encontrado nesta nota.</p>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </SheetContent>
+                    </Sheet>
+
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
                 </div>
 
                 <ScrollArea className="flex-1">
@@ -398,6 +394,7 @@ export default function Notes() {
                         return (
                           <div 
                             key={block.id} 
+                            id={block.id}
                             style={{ paddingLeft: `${block.level * 28}px` }}
                             className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20 ring-1 ring-primary/30' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
                             onMouseEnter={() => handleMouseEnter(index)}
@@ -408,51 +405,29 @@ export default function Notes() {
                             onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
                             onDrop={(e) => handleDrop(e, index)}
                           >
-                            {/* NEW GRIP HANDLE for D&D ONLY */}
-                            <div 
-                              className="grip-handle flex items-center h-8 w-5 shrink-0 justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-40 transition-opacity"
-                              onMouseDown={(e) => handleMouseDownForSelection(e, index)}
-                            >
-                              <GripVertical className="h-3.5 w-3.5" />
-                            </div>
+                            <div className="grip-handle flex items-center h-8 w-5 shrink-0 justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-40 transition-opacity" onMouseDown={(e) => handleMouseDownForSelection(e, index)}><GripVertical className="h-3.5 w-3.5" /></div>
 
-                            {/* BULLET AREA for MULTI-SELECT & TYPE SELECT */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <div 
-                                  className="bullet-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-cell hover:bg-muted/50 rounded"
-                                  onMouseDown={(e) => handleMouseDownForSelection(e, index)}
-                                >
-                                  <div className="flex flex-col items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity">
-                                    {blocks[index+1]?.level > block.level ? (
-                                      <button onClick={(e) => { e.stopPropagation(); setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b)) }} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}><ChevronDown className="h-4 w-4" /></button>
-                                    ) : (
-                                      <div className={`${block.type && block.type !== 'text' ? 'h-2 w-2 border-2 border-primary rounded-sm' : 'h-1.5 w-1.5 rounded-full bg-foreground'}`} />
-                                    )}
-                                  </div>
-                                </div>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-40">
-                                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Tipo do Bloco</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {blockTypeOptions.map((opt) => (
-                                  <DropdownMenuItem 
-                                    key={opt.type} 
-                                    onClick={() => setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: opt.type } : b))}
-                                    className="flex items-center gap-2 text-xs"
-                                  >
-                                    {opt.label}
-                                  </DropdownMenuItem>
-                                ))}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="bullet-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-cell" onMouseDown={(e) => handleMouseDownForSelection(e, index)}>
+                              <div className="flex flex-col items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity">
+                                {blocks[index+1]?.level > block.level ? (
+                                  <button onClick={(e) => { e.stopPropagation(); setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b)) }} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}><ChevronDown className="h-4 w-4" /></button>
+                                ) : (
+                                  <div className={`${block.type && block.type !== 'text' ? 'h-2 w-2 border-2 border-primary rounded-sm' : 'h-1.5 w-1.5 rounded-full bg-foreground'}`} />
+                                )}
+                              </div>
+                            </div>
                             
                             <textarea
                               ref={el => { if (focusedIndex === index) el?.focus(); }}
                               rows={1}
                               value={block.text}
                               onChange={e => {
-                                setBlocks(prev => prev.map((b, i) => i === index ? { ...b, text: e.target.value } : b));
+                                let newText = e.target.value;
+                                let newType = block.type || 'text';
+                                if (newText.startsWith('# ')) { newText = newText.substring(2); newType = 'h1'; }
+                                else if (newText.startsWith('## ')) { newText = newText.substring(3); newType = 'h2'; }
+                                else if (newText.startsWith('### ')) { newText = newText.substring(4); newType = 'h3'; }
+                                setBlocks(prev => prev.map((b, i) => i === index ? { ...b, text: newText, type: newType } : b));
                                 e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`;
                               }}
                               onKeyDown={e => handleKeyDown(e, index)}
@@ -478,7 +453,7 @@ export default function Notes() {
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20"><List className="h-24 w-24 mb-6 stroke-[1px]" /><h3 className="text-2xl font-black uppercase tracking-widest">Selecione uma Nota</h3></div>
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20"><List className="h-24 w-24 mb-6 stroke-[1px]" /><h3 className="text-2xl font-black uppercase tracking-widest">Nenhuma Nota</h3></div>
             )}
           </ResizablePanel>
         </ResizablePanelGroup>
