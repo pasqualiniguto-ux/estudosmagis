@@ -64,6 +64,7 @@ export interface NoteBlock {
   text: string;
   level: number;
   collapsed?: boolean;
+  type?: 'text' | 'h1' | 'h2' | 'h3';
 }
 
 export interface Note {

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List, Type } from 'lucide-react';
+import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Save, Loader2, ChevronDown, Circle, GripVertical, List, Type, Heading1, Heading2, Heading3, AlignLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -296,6 +296,32 @@ export default function Notes() {
     return true;
   };
 
+  // --- BLOCK TYPE HELPERS ---
+  const getBlockTypeStyles = (type?: string) => {
+    switch (type) {
+      case 'h1': return 'text-3xl font-extrabold tracking-tight leading-tight';
+      case 'h2': return 'text-xl font-bold tracking-tight';
+      case 'h3': return 'text-base font-semibold text-foreground/70';
+      default: return 'font-medium';
+    }
+  };
+
+  const getBlockTypePlaceholder = (type?: string) => {
+    switch (type) {
+      case 'h1': return 'Título 1';
+      case 'h2': return 'Título 2';
+      case 'h3': return 'Título 3';
+      default: return '...';
+    }
+  };
+
+  const blockTypeOptions: { type: NoteBlock['type']; label: string }[] = [
+    { type: 'text', label: 'Texto' },
+    { type: 'h1',   label: 'H1 — Título' },
+    { type: 'h2',   label: 'H2 — Subtítulo' },
+    { type: 'h3',   label: 'H3 — Seção' },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20" onMouseUp={handleMouseUp}>
       <AppNavigation />
@@ -390,19 +416,36 @@ export default function Notes() {
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
 
-                            {/* BULLET AREA for MULTI-SELECT ONLY */}
-                            <div 
-                              className="bullet-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-cell"
-                              onMouseDown={(e) => handleMouseDownForSelection(e, index)}
-                            >
-                              <div className="flex flex-col items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity">
-                                {blocks[index+1]?.level > block.level ? (
-                                  <button onClick={(e) => { e.stopPropagation(); setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b)) }} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}><ChevronDown className="h-4 w-4" /></button>
-                                ) : (
-                                  <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                                )}
-                              </div>
-                            </div>
+                            {/* BULLET AREA for MULTI-SELECT & TYPE SELECT */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <div 
+                                  className="bullet-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-cell hover:bg-muted/50 rounded"
+                                  onMouseDown={(e) => handleMouseDownForSelection(e, index)}
+                                >
+                                  <div className="flex flex-col items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity">
+                                    {blocks[index+1]?.level > block.level ? (
+                                      <button onClick={(e) => { e.stopPropagation(); setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b)) }} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}><ChevronDown className="h-4 w-4" /></button>
+                                    ) : (
+                                      <div className={`${block.type && block.type !== 'text' ? 'h-2 w-2 border-2 border-primary rounded-sm' : 'h-1.5 w-1.5 rounded-full bg-foreground'}`} />
+                                    )}
+                                  </div>
+                                </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-40">
+                                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">Tipo do Bloco</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {blockTypeOptions.map((opt) => (
+                                  <DropdownMenuItem 
+                                    key={opt.type} 
+                                    onClick={() => setBlocks(prev => prev.map((b, i) => i === index ? { ...b, type: opt.type } : b))}
+                                    className="flex items-center gap-2 text-xs"
+                                  >
+                                    {opt.label}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             
                             <textarea
                               ref={el => { if (focusedIndex === index) el?.focus(); }}
@@ -414,8 +457,8 @@ export default function Notes() {
                               }}
                               onKeyDown={e => handleKeyDown(e, index)}
                               onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
-                              placeholder="..."
-                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/30 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all font-medium select-text"
+                              placeholder={getBlockTypePlaceholder(block.type)}
+                              className={`flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/30 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all select-text ${getBlockTypeStyles(block.type)}`}
                               style={{ height: 'auto', fontSize: 'inherit' }}
                             />
                             {block.collapsed && blocks[index+1]?.level > block.level && (
