@@ -43,6 +43,10 @@ interface StudyContextType {
   addExam: (exam: Omit<Exam, 'id'>) => void;
   removeExam: (id: string) => void;
   updateExam: (id: string, exam: Partial<Omit<Exam, 'id'>>) => void;
+  noteFont: string;
+  noteSize: string;
+  setNoteFont: (font: string) => void;
+  setNoteSize: (size: string) => void;
   addNote: (subjectId?: string) => Promise<string | undefined>;
   updateNote: (id: string, updates: Partial<Note>) => void;
   removeNote: (id: string) => void;
@@ -61,6 +65,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [noteFont, setNoteFontState] = useState('sans');
+  const [noteSize, setNoteSizeState] = useState('md');
   const [loading, setLoading] = useState(true);
   const migrationDone = useRef(false);
 
@@ -76,6 +82,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       setStudyLogs([]);
       setExams([]);
       setNotes([]);
+      setNoteFontState('sans');
+      setNoteSizeState('md');
       setLoading(false);
       migrationDone.current = false;
       return;
@@ -301,6 +309,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (settingsRes.data) {
       setActiveCycleIndex(settingsRes.data.active_cycle_index);
       setCompletedCyclesCountState(settingsRes.data.completed_cycles_count);
+      if (settingsRes.data.note_font) setNoteFontState(settingsRes.data.note_font);
+      if (settingsRes.data.note_size) setNoteSizeState(settingsRes.data.note_size);
     }
 
     setLoading(false);
@@ -625,9 +635,22 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setNotes(prev => prev.filter(n => n.id !== id));
   }, [user]);
 
+  const setNoteFont = useCallback(async (font: string) => {
+    if (!user) return;
+    setNoteFontState(font);
+    await supabase.from('user_settings').upsert({ user_id: user.id, note_font: font });
+  }, [user]);
+
+  const setNoteSize = useCallback(async (size: string) => {
+    if (!user) return;
+    setNoteSizeState(size);
+    await supabase.from('user_settings').upsert({ user_id: user.id, note_size: size });
+  }, [user]);
+
   return (
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
+      noteFont, noteSize, setNoteFont, setNoteSize,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,

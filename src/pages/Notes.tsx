@@ -11,9 +11,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { NoteBlock } from '@/types/study';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Type, TextSize } from 'lucide-react';
 
 export default function Notes() {
-  const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
+  const { notes, subjects, addNote, updateNote, removeNote, noteFont, noteSize, setNoteFont, setNoteSize } = useStudy();
   const { toast } = useToast();
   
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -256,6 +258,46 @@ export default function Notes() {
                       <option value="">Geral</option>
                       {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
+
+                    <Separator orientation="vertical" className="h-4 mx-1" />
+
+                    {/* Font Family Selector */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1.5 bg-muted/50">
+                          <Type className="h-3.5 w-3.5" />
+                          <span className="capitalize">{noteFont}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel className="text-xs">Estilo da Fonte</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setNoteFont('sans')} className="font-sans">San Serif (Padrão)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNoteFont('serif')} className="font-serif">Serif (Clássico)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNoteFont('mono')} className="font-mono">Monospace (Código)</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Font Size Selector */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] gap-1.5 bg-muted/50">
+                          <div className="flex items-baseline gap-0.5">
+                            <span className="text-[10px]">A</span><span className="text-sm">A</span>
+                          </div>
+                          <span className="uppercase">{noteSize}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuLabel className="text-xs">Tamanho do Texto</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setNoteSize('sm')}>Pequeno (SM)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNoteSize('md')}>Médio (MD)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNoteSize('lg')}>Grande (LG)</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setNoteSize('xl')}>Extra Grande (XL)</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}>
@@ -273,7 +315,14 @@ export default function Notes() {
                       onChange={e => setLocalTitle(e.target.value)}
                     />
                     
-                    <div className="space-y-0.5">
+                    <div className={`space-y-0.5 ${
+                      noteFont === 'serif' ? 'font-serif' : 
+                      noteFont === 'mono' ? 'font-mono' : 'font-sans'
+                    } ${
+                      noteSize === 'sm' ? 'text-sm' :
+                      noteSize === 'lg' ? 'text-lg' :
+                      noteSize === 'xl' ? 'text-xl' : 'text-base'
+                    }`}>
                       {blocks.map((block, index) => {
                         if (!isVisible(index)) return null;
                         
@@ -309,8 +358,8 @@ export default function Notes() {
                               onKeyDown={e => handleKeyDown(e, index)}
                               onFocus={() => setFocusedIndex(index)}
                               placeholder="..."
-                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 text-[16px] leading-relaxed placeholder:opacity-0 focus:placeholder:opacity-20 transition-all font-medium"
-                              style={{ height: 'auto' }}
+                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed placeholder:opacity-0 focus:placeholder:opacity-20 transition-all font-medium"
+                              style={{ height: 'auto', fontSize: 'inherit' }}
                             />
                             
                             {block.collapsed && hasChildren(index) && (
