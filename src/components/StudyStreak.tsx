@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useStudy } from '@/contexts/StudyContext';
 import { Flame } from 'lucide-react';
+import { nowBrasilia, toDateStr } from '@/lib/dateUtils';
 
 export default function StudyStreak() {
   const { studyLogs, dailyProgress } = useStudy();

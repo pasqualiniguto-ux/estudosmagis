@@ -58,7 +58,7 @@ export default function Index() {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-  const todayStr = toDateStr(new Date());
+  const todayStr = toDateStr(nowBrasilia());
 
   // Add entry dialog
   const [addDate, setAddDate] = useState<Date | null>(null);

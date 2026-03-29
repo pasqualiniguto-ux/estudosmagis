@@ -58,7 +58,7 @@ export default function ExamReminders() {
   };
 
   const getDaysLeftColor = (dateStr: string) => {
-    const diff = differenceInDays(parseISO(dateStr), new Date());
+    const diff = differenceInDays(parseISO(dateStr), nowBrasilia());
     if (diff < 0) return 'text-muted-foreground';
     if (diff <= 7) return 'text-destructive';
     if (diff <= 30) return 'text-yellow-600 dark:text-yellow-400';

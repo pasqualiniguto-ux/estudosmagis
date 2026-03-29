@@ -71,7 +71,7 @@ export default function Subjects() {
       subjectId: logTopic.subjectId,
       topicId: logTopic.topicId,
       topicName: logTopic.topicName,
-      date: new Date().toISOString().split('T')[0],
+      date: todayStr(),
       timeStudiedSeconds: 0,
       questionsCorrect: logCorrect,
       questionsWrong: logWrong,
