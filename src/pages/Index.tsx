@@ -130,7 +130,7 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6">
         <div className="flex items-center justify-between mb-4">

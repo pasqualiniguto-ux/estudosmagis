@@ -86,7 +86,7 @@ export default function Dashboard() {
   }));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6">
         <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard</h1>
