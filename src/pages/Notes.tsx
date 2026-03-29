@@ -33,6 +33,7 @@ export default function Notes() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [canDrag, setCanDrag] = useState(false); // New state to lock drag to Grip only
 
   const selectedNote = useMemo(() => 
     notes.find(n => n.id === selectedNoteId), 
@@ -153,7 +154,6 @@ export default function Notes() {
 
   // --- OUTLINER EVENT HANDLERS ---
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
-    // If multiple blocks are selected
     if (selectedIndices.length > 0) {
       if (e.key === 'Tab') {
         e.preventDefault();
@@ -180,7 +180,6 @@ export default function Notes() {
 
     if (e.key === 'Enter') {
       e.preventDefault();
-      // Smart Enter: Outdent if line is empty
       if (blocks[index].text.trim() === '' && blocks[index].level > 0) {
         setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: b.level - 1 } : b));
         return;
@@ -201,10 +200,7 @@ export default function Notes() {
       const diff = e.shiftKey ? -1 : 1;
       const prevBlock = blocks[index - 1];
       const newLevel = Math.max(0, blocks[index].level + diff);
-      
-      // Constraint: can't indent more than prev level + 1
       if (diff > 0 && prevBlock && newLevel > prevBlock.level + 1) return;
-      
       setBlocks(prev => prev.map((b, i) => i === index ? { ...b, level: newLevel } : b));
     } else if (e.key === 'Backspace' && blocks[index].text === '' && blocks.length > 1) {
       e.preventDefault();
@@ -224,35 +220,40 @@ export default function Notes() {
     }
   };
 
-  // --- DRAG & DROP & SELECTION EVENTS ---
-  const handleMouseDown = (e: React.MouseEvent, index: number) => {
-    // Selection starts only on handle/whitespace
-    if ((e.target as HTMLElement).closest('.drag-handle')) {
+  // --- MOUSE EVENTS ---
+  const handleMouseDownForSelection = (e: React.MouseEvent, index: number) => {
+    // If clicking on Grip, allow Dragging only
+    if ((e.target as HTMLElement).closest('.grip-handle')) {
+      setCanDrag(true);
+      return;
+    }
+
+    // If clicking on Bullet/Chevron/Whitespace, allow Multi-Select
+    if ((e.target as HTMLElement).closest('.bullet-handle')) {
       setSelectionStart(index);
       setSelectionEnd(index);
       setIsSelecting(true);
-      
-      // Cleanup any active text selection
+      setCanDrag(false);
       window.getSelection()?.removeAllRanges();
     }
   };
 
   const handleMouseEnter = (index: number) => {
-    if (isSelecting) {
-      setSelectionEnd(index);
-    }
-    if (draggedIndex !== null) {
-      setDragOverIndex(index);
-    }
+    if (isSelecting) setSelectionEnd(index);
+    if (draggedIndex !== null) setDragOverIndex(index);
   };
 
   const handleMouseUp = () => {
     setIsSelecting(false);
+    setCanDrag(false);
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!canDrag) {
+      e.preventDefault();
+      return;
+    }
     setDraggedIndex(index);
-    // Visual ghost element (optional, browser handles basic one)
     e.dataTransfer.setData('text/plain', index.toString());
   };
 
@@ -263,25 +264,14 @@ export default function Notes() {
       setDragOverIndex(null);
       return;
     }
-
-    // Identify subtree for the dragged item
     const subtree = getSubtreeRange(draggedIndex);
     const movingCount = subtree.end - subtree.start + 1;
     const blocksToMove = blocks.slice(subtree.start, subtree.end + 1);
-
     const newBlocks = [...blocks];
-    // Remove the blocks first
     newBlocks.splice(subtree.start, movingCount);
-    
-    // Adjust target index if we removed blocks before it
     let adjustedTargetIndex = targetIndex;
-    if (subtree.start < targetIndex) {
-      adjustedTargetIndex = targetIndex - movingCount + 1;
-    }
-
-    // Insert at target
+    if (subtree.start < targetIndex) adjustedTargetIndex = targetIndex - movingCount + 1;
     newBlocks.splice(adjustedTargetIndex, 0, ...blocksToMove);
-    
     setBlocks(newBlocks);
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -299,52 +289,32 @@ export default function Notes() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20" 
-      onMouseUp={handleMouseUp}
-    >
+    <div className="min-h-screen bg-background pb-16 md:pb-0 font-sans selection:bg-primary/20" onMouseUp={handleMouseUp}>
       <AppNavigation />
-      
       <main className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* SIDEBAR */}
           <ResizablePanel defaultSize={25} minSize={20} className="hidden md:block">
             <div className="flex flex-col h-full bg-card/30 border-r border-border">
               <div className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-bold text-lg flex items-center gap-2">
-                    <NotebookPen className="h-5 w-5 text-primary" />
-                    Caderno
-                  </h2>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={handleCreateNote}>
-                    <Plus className="h-5 w-5" />
-                  </Button>
+                  <h2 className="font-bold text-lg flex items-center gap-2"><NotebookPen className="h-5 w-5 text-primary" /> Caderno</h2>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={handleCreateNote}><Plus className="h-5 w-5" /></Button>
                 </div>
                 <Input placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="h-9 bg-background/50" />
                 <div className="flex flex-wrap gap-1.5">
                   <Button variant={filterSubjectId === 'all' ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" onClick={() => setFilterSubjectId('all')}>Tudo</Button>
-                  {subjects.map(s => (
-                    <Button key={s.id} variant={filterSubjectId === s.id ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" style={filterSubjectId === s.id ? { backgroundColor: s.color } : {}} onClick={() => setFilterSubjectId(s.id)}>{s.name}</Button>
-                  ))}
+                  {subjects.map(s => <Button key={s.id} variant={filterSubjectId === s.id ? 'default' : 'outline'} size="sm" className="h-7 text-[10px]" style={filterSubjectId === s.id ? { backgroundColor: s.color } : {}} onClick={() => setFilterSubjectId(s.id)}>{s.name}</Button>)}
                 </div>
               </div>
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-1">
                   {filteredNotes.map(note => (
                     <div key={note.id} className="group relative">
-                      <button 
-                        onClick={() => setSelectedNoteId(note.id)} 
-                        className={`w-full text-left p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}
-                      >
+                      <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
                         <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
-                        <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}
-                        </div>
+                        <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]"><Clock className="h-3 w-3" /> {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}</div>
                       </button>
-                      <button onClick={() => handleDeleteNote(note.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <button onClick={() => handleDeleteNote(note.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   ))}
                 </div>
@@ -354,76 +324,37 @@ export default function Notes() {
 
           <ResizableHandle className="hidden md:flex" />
 
-          {/* EDITOR AREA */}
           <ResizablePanel defaultSize={75}>
             {selectedNoteId ? (
               <div className="flex flex-col h-full bg-background relative overflow-hidden">
-                {/* Fixed Header */}
-                <div className="px-6 py-4 border-b border-border bg-card/10 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+                <div className="px-6 py-4 border-b border-border bg-card/10 flex items-center justify-between z-20 backdrop-blur-md sticky top-0">
                   <div className="flex items-center gap-3 overflow-hidden">
-                    <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 shrink-0" onClick={() => setSelectedNoteId(null)}>
-                      <ChevronRight className="h-5 w-5 rotate-180" />
-                    </Button>
+                    <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelectedNoteId(null)}><ChevronRight className="h-5 w-5 rotate-180" /></Button>
                     <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none max-w-[120px] truncate">
                       <option value="">Geral</option>
                       {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
-
                     <Separator orientation="vertical" className="h-4 mx-1 hidden sm:block" />
-
                     <div className="hidden sm:flex items-center gap-1.5">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 bg-muted/50">
-                            <Type className="h-3.5 w-3.5" />
-                            <span className="capitalize">{noteFont}</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem onClick={() => setNoteFont('sans')} className="font-sans">San Serif</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setNoteFont('serif')} className="font-serif">Serif</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setNoteFont('mono')} className="font-mono">Monospace</DropdownMenuItem>
-                        </DropdownMenuContent>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 bg-muted/50"><Type className="h-3.5 w-3.5" /> <span className="capitalize">{noteFont}</span></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent><DropdownMenuItem onClick={() => setNoteFont('sans')}>San Serif</DropdownMenuItem><DropdownMenuItem onClick={() => setNoteFont('serif')}>Serif</DropdownMenuItem><DropdownMenuItem onClick={() => setNoteFont('mono')}>Monospace</DropdownMenuItem></DropdownMenuContent>
                       </DropdownMenu>
-
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1 bg-muted/50">
-                            <span className="uppercase">{noteSize}</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          <DropdownMenuItem onClick={() => setNoteSize('sm')}>Pequeno</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setNoteSize('md')}>Médio</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setNoteSize('lg')}>Grande</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setNoteSize('xl')}>Extra</DropdownMenuItem>
-                        </DropdownMenuContent>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] bg-muted/50 uppercase">{noteSize}</Button></DropdownMenuTrigger>
+                        <DropdownMenuContent><DropdownMenuItem onClick={() => setNoteSize('sm')}>Pequeno</DropdownMenuItem><DropdownMenuItem onClick={() => setNoteSize('md')}>Médio</DropdownMenuItem><DropdownMenuItem onClick={() => setNoteSize('lg')}>Grande</DropdownMenuItem><DropdownMenuItem onClick={() => setNoteSize('xl')}>Extra</DropdownMenuItem></DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-
                     {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground mr-2" />}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
 
                 <ScrollArea className="flex-1">
                   <div className="max-w-4xl mx-auto w-full p-8 md:p-14 space-y-10">
-                    <input
-                      type="text"
-                      placeholder="Título da nota..."
-                      className="text-4xl md:text-5xl font-black bg-transparent border-none outline-none placeholder:opacity-10 w-full tracking-tighter"
-                      value={localTitle}
-                      onChange={e => setLocalTitle(e.target.value)}
-                      onFocus={() => setFocusedIndex(null)}
-                    />
+                    <input type="text" placeholder="Título da nota..." className="text-4xl md:text-5xl font-black bg-transparent border-none outline-none placeholder:opacity-10 w-full tracking-tighter" value={localTitle} onChange={e => setLocalTitle(e.target.value)} onFocus={() => setFocusedIndex(null)} />
                     
-                    <div className={`space-y-0.5 select-none ${
-                        noteFont === 'serif' ? 'font-serif' : noteFont === 'mono' ? 'font-mono' : 'font-sans'
-                      } ${
-                        noteSize === 'sm' ? 'text-sm' : noteSize === 'lg' ? 'text-lg' : noteSize === 'xl' ? 'text-xl' : 'text-base'
-                      }`}>
+                    <div className={`space-y-0.5 select-none ${noteFont === 'serif' ? 'font-serif' : noteFont === 'mono' ? 'font-mono' : 'font-sans'} ${noteSize === 'sm' ? 'text-sm' : noteSize === 'lg' ? 'text-lg' : noteSize === 'xl' ? 'text-xl' : 'text-base'}`}>
                       {blocks.map((block, index) => {
                         if (!isVisible(index)) return null;
                         const isSelected = selectedIndices.includes(index);
@@ -434,11 +365,7 @@ export default function Notes() {
                           <div 
                             key={block.id} 
                             style={{ paddingLeft: `${block.level * 28}px` }}
-                            className={`group flex items-start gap-1 relative py-0.5 px-2 rounded-sm transition-all duration-150 ${
-                              isSelected ? 'bg-primary/15' : 'hover:bg-muted/30'
-                            } ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${
-                              isBeingDragged ? 'opacity-30' : ''
-                            }`}
+                            className={`group flex items-start gap-0.5 relative py-0.5 px-1 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary/20' : 'hover:bg-muted/30'} ${isOver && draggedIndex !== index ? 'border-t-2 border-primary' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
                             onMouseEnter={() => handleMouseEnter(index)}
                             onMouseUp={handleMouseUp}
                             draggable={true}
@@ -446,15 +373,22 @@ export default function Notes() {
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, index)}
                           >
+                            {/* NEW GRIP HANDLE for D&D ONLY */}
                             <div 
-                              className="drag-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-grab active:cursor-grabbing"
-                              onMouseDown={(e) => handleMouseDown(e, index)}
+                              className="grip-handle flex items-center h-8 w-5 shrink-0 justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-40 transition-opacity"
+                              onMouseDown={(e) => handleMouseDownForSelection(e, index)}
                             >
-                              <div className="flex flex-col items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity">
-                                {blocks[index + 1]?.level > block.level ? (
-                                  <button onClick={() => setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b))} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}>
-                                    <ChevronDown className="h-4 w-4" />
-                                  </button>
+                              <GripVertical className="h-3.5 w-3.5" />
+                            </div>
+
+                            {/* BULLET AREA for MULTI-SELECT ONLY */}
+                            <div 
+                              className="bullet-handle flex items-center h-8 w-6 shrink-0 justify-center cursor-cell"
+                              onMouseDown={(e) => handleMouseDownForSelection(e, index)}
+                            >
+                              <div className="flex flex-col items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity">
+                                {blocks[index+1]?.level > block.level ? (
+                                  <button onClick={(e) => { e.stopPropagation(); setBlocks(prev => prev.map((b, i) => i === index ? { ...b, collapsed: !b.collapsed } : b)) }} className="transition-transform" style={{ transform: block.collapsed ? 'rotate(-90deg)' : 'none' }}><ChevronDown className="h-4 w-4" /></button>
                                 ) : (
                                   <div className="h-1.5 w-1.5 rounded-full bg-foreground" />
                                 )}
@@ -467,20 +401,16 @@ export default function Notes() {
                               value={block.text}
                               onChange={e => {
                                 setBlocks(prev => prev.map((b, i) => i === index ? { ...b, text: e.target.value } : b));
-                                e.target.style.height = 'auto';
-                                e.target.style.height = `${e.target.scrollHeight}px`;
+                                e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`;
                               }}
                               onKeyDown={e => handleKeyDown(e, index)}
                               onFocus={() => { setFocusedIndex(index); setSelectionStart(null); setSelectionEnd(null); }}
                               placeholder="..."
-                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/20 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all font-medium select-text"
+                              className="flex-1 bg-transparent border-none outline-none resize-none py-1 leading-relaxed selection:bg-primary/30 placeholder:opacity-0 focus:placeholder:opacity-10 transition-all font-medium select-text"
                               style={{ height: 'auto', fontSize: 'inherit' }}
                             />
-                            
-                            {block.collapsed && blocks[index + 1]?.level > block.level && (
-                              <div className="absolute right-2 top-2 px-1 py-0.5 rounded-full bg-primary/10 text-[9px] font-black text-primary animate-pulse">
-                                HIERARQUIA RECOLHIDA
-                              </div>
+                            {block.collapsed && blocks[index+1]?.level > block.level && (
+                              <div className="absolute right-2 top-2 px-1 py-0.5 rounded bg-primary/10 text-[9px] font-black text-primary">RECOLHIDO</div>
                             )}
                           </div>
                         );
@@ -489,23 +419,14 @@ export default function Notes() {
                   </div>
                 </ScrollArea>
                 
-                {/* Mobile Toolbar */}
                 <div className="md:hidden flex items-center justify-around p-3 border-t border-border bg-card/90 backdrop-blur-md sticky bottom-0 z-30">
-                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1">
-                    <ChevronRight className="h-4 w-4 rotate-180" /> Recuar
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1"><ChevronRight className="h-4 w-4 rotate-180" /> Recuar</Button>
                   <Separator orientation="vertical" className="h-6" />
-                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1">
-                    Indentar <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => focusedIndex !== null && handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault: () => {} } as any, focusedIndex)} className="text-xs gap-1">Indentar <ChevronRight className="h-4 w-4" /></Button>
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20">
-                <List className="h-24 w-24 mb-6 stroke-[1px]" />
-                <h3 className="text-2xl font-black uppercase tracking-widest">Nenhuma Nota Selecionada</h3>
-                <p className="max-w-xs mt-4 text-sm font-medium">Use a barra lateral para criar um novo caderno ou selecione um resumo existente para editar.</p>
-              </div>
+              <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20"><List className="h-24 w-24 mb-6 stroke-[1px]" /><h3 className="text-2xl font-black uppercase tracking-widest">Selecione uma Nota</h3></div>
             )}
           </ResizablePanel>
         </ResizablePanelGroup>
