@@ -263,10 +263,10 @@ export default function Notes() {
 
   const getBlockTypeStyles = (type?: string) => {
     switch (type) {
-      case 'h1': return 'text-4xl md:text-5xl font-black tracking-tighter leading-none mb-2 mt-4 text-foreground';
-      case 'h2': return 'text-2xl md:text-3xl font-bold tracking-tight mb-1 mt-3 text-foreground/90';
-      case 'h3': return 'text-xl font-semibold tracking-tight mt-2 text-foreground/80';
-      default: return 'font-medium';
+      case 'h1': return 'text-5xl md:text-6xl font-black tracking-tighter leading-[1.1] mb-6 mt-8 text-foreground selection:bg-primary/40';
+      case 'h2': return 'text-3xl md:text-4xl font-extrabold tracking-tight mb-4 mt-6 text-foreground/90';
+      case 'h3': return 'text-xl md:text-2xl font-bold tracking-tight mb-2 mt-4 text-foreground/80';
+      default: return 'font-medium leading-relaxed my-1';
     }
   };
 
