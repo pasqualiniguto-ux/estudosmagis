@@ -33,12 +33,10 @@ function fmtPlanned(minutes: number): string {
   return `${m}min`;
 }
 
-function toDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
+import { toDateStr, nowBrasilia } from '@/lib/dateUtils';
 
 function getWeekDates(weekOffset: number): Date[] {
-  const today = new Date();
+  const today = nowBrasilia();
   today.setHours(12, 0, 0, 0);
   const jsDay = today.getDay();
   const diffToMonday = jsDay === 0 ? -6 : 1 - jsDay;
