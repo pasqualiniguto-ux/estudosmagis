@@ -33,12 +33,10 @@ function fmtPlanned(minutes: number): string {
   return `${m}min`;
 }
 
-function toDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
+import { toDateStr, nowBrasilia } from '@/lib/dateUtils';
 
 function getWeekDates(weekOffset: number): Date[] {
-  const today = new Date();
+  const today = nowBrasilia();
   today.setHours(12, 0, 0, 0);
   const jsDay = today.getDay();
   const diffToMonday = jsDay === 0 ? -6 : 1 - jsDay;
@@ -60,7 +58,7 @@ export default function Index() {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-  const todayStr = toDateStr(new Date());
+  const todayStr = toDateStr(nowBrasilia());
 
   // Add entry dialog
   const [addDate, setAddDate] = useState<Date | null>(null);

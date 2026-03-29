@@ -27,14 +27,12 @@ function fmtPlanned(minutes: number): string {
   return `${m}min`;
 }
 
-function toDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
-}
+import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
   const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, setCompletedCyclesCount } = useStudy();
 
-  const todayStr = toDateStr(new Date());
+  const todayStr = getTodayStr();
 
   // Add block state
   const [addSubjectId, setAddSubjectId] = useState('');
