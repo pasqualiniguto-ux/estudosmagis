@@ -148,6 +148,39 @@ export default function Subjects() {
     toast({ title: 'Link salvo!', description: 'A URL foi atualizada com sucesso.' });
   };
 
+  const handleDeletePDF = async () => {
+    if (!user || !attachmentTarget?.pdfUrl) return;
+
+    setIsUploading(true);
+    try {
+      // Extrair o caminho do arquivo a partir da URL pública
+      const url = new URL(attachmentTarget.pdfUrl);
+      const pathParts = url.pathname.split('/');
+      // O caminho real no bucket começa depois do nome do bucket ('study_materials')
+      const bucketIdx = pathParts.indexOf('study_materials');
+      const filePath = pathParts.slice(bucketIdx + 2).join('/'); // Pulamos 'study_materials' e 'public'/'object'
+
+      const { error: deleteError } = await supabase.storage
+        .from('study_materials')
+        .remove([filePath]);
+
+      if (deleteError) throw deleteError;
+
+      if (attachmentTarget.topicId) {
+        updateTopic(attachmentTarget.subjectId, attachmentTarget.topicId, { pdfUrl: undefined });
+      } else {
+        updateSubject(attachmentTarget.subjectId, { pdfUrl: undefined });
+      }
+
+      setAttachmentTarget(prev => prev ? { ...prev, pdfUrl: undefined } : null);
+      toast({ title: 'PDF removido', description: 'O arquivo foi apagado com sucesso.' });
+    } catch (error: any) {
+      toast({ title: 'Erro ao deletar', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
@@ -463,7 +496,10 @@ export default function Subjects() {
                     <Button variant="ghost" size="sm" className="h-8 px-2 text-primary" onClick={() => window.open(attachmentTarget.pdfUrl, '_blank')}>
                       Abrir
                     </Button>
-                    <label className="cursor-pointer">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={handleDeletePDF} disabled={isUploading}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <label className="cursor-pointer ml-1">
                       <Input type="file" accept=".pdf" className="hidden" onChange={handleUploadPDF} disabled={isUploading} />
                       <span className="text-xs text-muted-foreground hover:text-foreground">Trocar</span>
                     </label>
