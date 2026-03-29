@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { todayStr } from '@/lib/dateUtils';
 import AppNavigation from '@/components/AppNavigation';
 import { useStudy } from '@/contexts/StudyContext';
@@ -6,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const SUBJECT_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
@@ -23,7 +26,9 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 }
 
 export default function Subjects() {
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, removeTopic, getTopicStats, getSubjectStats, addStudyLog } = useStudy();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, getTopicStats, getSubjectStats, addStudyLog } = useStudy();
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -35,6 +40,11 @@ export default function Subjects() {
   const [newTopicName, setNewTopicName] = useState('');
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Attachment state
+  const [attachmentTarget, setAttachmentTarget] = useState<{ subjectId: string; topicId?: string; name: string; pdfUrl?: string; webUrl?: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [newWebUrl, setNewWebUrl] = useState('');
 
   // Manual log per topic
   const [logTopic, setLogTopic] = useState<{ subjectId: string; topicId: string; topicName: string } | null>(null);
@@ -85,6 +95,59 @@ export default function Subjects() {
 
   const toggleExpand = (id: string) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
+  const handleUploadPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !attachmentTarget) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({ title: 'Apenas PDF', description: 'Por favor, selecione um arquivo PDF.', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const filePath = `materials/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('study_materials')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('study_materials')
+        .getPublicUrl(filePath);
+
+      if (attachmentTarget.topicId) {
+        updateTopic(attachmentTarget.subjectId, attachmentTarget.topicId, { pdfUrl: publicUrl });
+      } else {
+        updateSubject(attachmentTarget.subjectId, { pdfUrl: publicUrl });
+      }
+
+      setAttachmentTarget(prev => prev ? { ...prev, pdfUrl: publicUrl } : null);
+      toast({ title: 'PDF enviado!', description: 'O material foi atrelado com sucesso.' });
+    } catch (error: any) {
+      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveWebUrl = () => {
+    if (!attachmentTarget) return;
+
+    if (attachmentTarget.topicId) {
+      updateTopic(attachmentTarget.subjectId, attachmentTarget.topicId, { webUrl: newWebUrl });
+    } else {
+      updateSubject(attachmentTarget.subjectId, { webUrl: newWebUrl });
+    }
+
+    setAttachmentTarget(prev => prev ? { ...prev, webUrl: newWebUrl } : null);
+    toast({ title: 'Link salvo!', description: 'A URL foi atualizada com sucesso.' });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
@@ -129,6 +192,43 @@ export default function Subjects() {
                     }
                     return null;
                   })()}
+                  <div className="flex items-center gap-1">
+                    {subject.pdfUrl && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={e => { e.stopPropagation(); window.open(subject.pdfUrl, '_blank'); }}
+                        title="Abrir PDF"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {subject.webUrl && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={e => { e.stopPropagation(); window.open(subject.webUrl, '_blank'); }}
+                        title="Abrir Link"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      onClick={e => { 
+                        e.stopPropagation(); 
+                        setAttachmentTarget({ subjectId: subject.id, name: subject.name, pdfUrl: subject.pdfUrl, webUrl: subject.webUrl });
+                        setNewWebUrl(subject.webUrl || '');
+                      }}
+                      title="Materiais de estudo"
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -176,6 +276,42 @@ export default function Subjects() {
                               </>
                             )}
                             <PercentageBadge percentage={stats.percentage} />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {topic.pdfUrl && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => window.open(topic.pdfUrl, '_blank')}
+                                title="Abrir PDF"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {topic.webUrl && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => window.open(topic.webUrl, '_blank')}
+                                title="Abrir Link"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-primary"
+                              onClick={() => {
+                                setAttachmentTarget({ subjectId: subject.id, topicId: topic.id, name: topic.name, pdfUrl: topic.pdfUrl, webUrl: topic.webUrl });
+                                setNewWebUrl(topic.webUrl || '');
+                              }}
+                              title="Materiais de estudo"
+                            >
+                              <Paperclip className="h-3 w-3" />
+                            </Button>
                           </div>
                           <Button
                             variant="ghost"
@@ -302,6 +438,75 @@ export default function Subjects() {
               <Button className="w-full" onClick={handleManualTopicLog}>Salvar</Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Material / Attachment Dialog */}
+      <Dialog open={!!attachmentTarget} onOpenChange={o => { if (!o) setAttachmentTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Materiais: {attachmentTarget?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* PDF Upload */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Arquivo PDF</label>
+              {attachmentTarget?.pdfUrl ? (
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="font-medium truncate max-w-[150px]">Material Anexado</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-primary" onClick={() => window.open(attachmentTarget.pdfUrl, '_blank')}>
+                      Abrir
+                    </Button>
+                    <label className="cursor-pointer">
+                      <Input type="file" accept=".pdf" className="hidden" onChange={handleUploadPDF} disabled={isUploading} />
+                      <span className="text-xs text-muted-foreground hover:text-foreground">Trocar</span>
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <div className="relative border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-2 hover:bg-muted/30 transition-colors pointer-events-none">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground text-center">Nenhum PDF anexado</p>
+                  <label className="absolute inset-0 cursor-pointer pointer-events-auto">
+                    <Input type="file" accept=".pdf" className="hidden" onChange={handleUploadPDF} disabled={isUploading} />
+                  </label>
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-lg">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Web URL */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">URL do Material / Questões</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input 
+                    placeholder="https://app.tecconcursos.com.br/..." 
+                    value={newWebUrl} 
+                    onChange={e => setNewWebUrl(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <Button size="sm" onClick={handleSaveWebUrl}>Salvar</Button>
+              </div>
+              {attachmentTarget?.webUrl && (
+                <Button variant="link" className="h-auto p-0 text-xs text-primary" onClick={() => window.open(attachmentTarget.webUrl, '_blank')}>
+                  <ExternalLink className="h-3 w-3 mr-1" /> Testar link atual
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

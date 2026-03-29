@@ -214,6 +214,8 @@ export type Database = {
       subjects: {
         Row: {
           color: string | null
+          pdf_url: string | null
+          web_url: string | null
           created_at: string
           id: string
           name: string
@@ -221,6 +223,8 @@ export type Database = {
         }
         Insert: {
           color?: string | null
+          pdf_url?: string | null
+          web_url?: string | null
           created_at?: string
           id?: string
           name: string
@@ -228,6 +232,8 @@ export type Database = {
         }
         Update: {
           color?: string | null
+          pdf_url?: string | null
+          web_url?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -240,6 +246,8 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          pdf_url: string | null
+          web_url: string | null
           subject_id: string
           user_id: string
         }
@@ -247,6 +255,8 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          pdf_url?: string | null
+          web_url?: string | null
           subject_id: string
           user_id: string
         }
@@ -254,6 +264,8 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          pdf_url?: string | null
+          web_url?: string | null
           subject_id?: string
           user_id?: string
         }

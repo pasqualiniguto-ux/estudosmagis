@@ -23,7 +23,8 @@ interface StudyContextType {
   addSubject: (name: string, color?: string) => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
-  addTopic: (subjectId: string, name: string) => void;
+  addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
+  updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   removeScheduleEntry: (id: string) => void;
@@ -219,13 +220,20 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     const topicsBySubject: Record<string, Topic[]> = {};
     (topicsRes.data || []).forEach((t: any) => {
       if (!topicsBySubject[t.subject_id]) topicsBySubject[t.subject_id] = [];
-      topicsBySubject[t.subject_id].push({ id: t.id, name: t.name });
+      topicsBySubject[t.subject_id].push({
+        id: t.id,
+        name: t.name,
+        pdfUrl: t.pdf_url || undefined,
+        webUrl: t.web_url || undefined
+      });
     });
 
     setSubjects((subjectsRes.data || []).map((s: any) => ({
       id: s.id,
       name: s.name,
       color: s.color,
+      pdfUrl: s.pdf_url || undefined,
+      webUrl: s.web_url || undefined,
       topics: topicsBySubject[s.id] || [],
     })));
 
@@ -299,6 +307,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.color !== undefined) dbUpdates.color = updates.color;
+    if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
+    if (updates.webUrl !== undefined) dbUpdates.web_url = updates.webUrl;
     await supabase.from('subjects').update(dbUpdates).eq('id', id);
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   }, [user]);
@@ -311,18 +321,32 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setCycleEntries(prev => prev.filter(e => e.subjectId !== id));
   }, [user]);
 
-  const addTopic = useCallback(async (subjectId: string, name: string) => {
+  const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
     if (!user) return;
     const { data } = await supabase.from('topics').insert({
-      subject_id: subjectId, user_id: user.id, name,
+      subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null
     }).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
         s.id === subjectId
-          ? { ...s, topics: [...s.topics, { id: data.id, name }] }
+          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl }] }
           : s
       ));
     }
+  }, [user]);
+
+  const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
+    if (updates.webUrl !== undefined) dbUpdates.web_url = updates.webUrl;
+    await supabase.from('topics').update(dbUpdates).eq('id', topicId);
+    setSubjects(prev => prev.map(s =>
+      s.id === subjectId
+        ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, ...updates } : t) }
+        : s
+    ));
   }, [user]);
 
   const removeTopic = useCallback(async (subjectId: string, topicId: string) => {
@@ -541,7 +565,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   return (
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, loading,
-      addSubject, updateSubject, removeSubject, addTopic, removeTopic,
+      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,

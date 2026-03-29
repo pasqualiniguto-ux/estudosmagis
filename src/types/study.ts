@@ -2,12 +2,16 @@ export interface Subject {
   id: string;
   name: string;
   color?: string;
+  pdfUrl?: string;
+  webUrl?: string;
   topics: Topic[];
 }
 
 export interface Topic {
   id: string;
   name: string;
+  pdfUrl?: string;
+  webUrl?: string;
 }
 
 export interface ScheduleEntry {
