@@ -65,7 +65,7 @@ export default function Index() {
   const [addSubjectId, setAddSubjectId] = useState('');
   const [addHours, setAddHours] = useState(0);
   const [addMinutes, setAddMinutes] = useState(30);
-  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring'>('once');
+  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring' | 'daily'>('once');
 
   // Timer
   const [timerEntry, setTimerEntry] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
@@ -83,12 +83,18 @@ export default function Index() {
   const [logTimeH, setLogTimeH] = useState(0);
   const [logTimeM, setLogTimeM] = useState(0);
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (!addDate || !addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
     if (totalMin <= 0) return;
     const ourDay = (addDate.getDay() + 6) % 7;
-    addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
+    if (addRecurring === 'daily') {
+      for (let d = 0; d < 7; d++) {
+        await addScheduleEntry(addSubjectId, totalMin, true, d);
+      }
+    } else {
+      addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
+    }
     setAddDate(null);
   };
 
@@ -275,7 +281,7 @@ export default function Index() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block">Frequência</label>
-                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring')}>
+                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring' | 'daily')}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="once" id="freq-once" />
                     <Label htmlFor="freq-once" className="text-sm">Apenas nesta data</Label>
@@ -285,6 +291,10 @@ export default function Index() {
                     <Label htmlFor="freq-recurring" className="text-sm">
                       Repetir toda {addDate ? DAY_NAMES_FULL[(addDate.getDay() + 6) % 7] : ''}
                     </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="daily" id="freq-daily" />
+                    <Label htmlFor="freq-daily" className="text-sm">Repetir todos os dias</Label>
                   </div>
                 </RadioGroup>
               </div>
