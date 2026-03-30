@@ -83,12 +83,18 @@ export default function Index() {
   const [logTimeH, setLogTimeH] = useState(0);
   const [logTimeM, setLogTimeM] = useState(0);
 
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (!addDate || !addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
     if (totalMin <= 0) return;
     const ourDay = (addDate.getDay() + 6) % 7;
-    addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
+    if (addRecurring === 'daily') {
+      for (let d = 0; d < 7; d++) {
+        await addScheduleEntry(addSubjectId, totalMin, true, d);
+      }
+    } else {
+      addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
+    }
     setAddDate(null);
   };
 
