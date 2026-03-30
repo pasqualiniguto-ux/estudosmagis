@@ -65,7 +65,7 @@ export default function Index() {
   const [addSubjectId, setAddSubjectId] = useState('');
   const [addHours, setAddHours] = useState(0);
   const [addMinutes, setAddMinutes] = useState(30);
-  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring'>('once');
+  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring' | 'daily'>('once');
 
   // Timer
   const [timerEntry, setTimerEntry] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
