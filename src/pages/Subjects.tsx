@@ -51,6 +51,15 @@ export default function Subjects() {
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
 
+  // Edit topic name
+  const [editTopicState, setEditTopicState] = useState<{ subjectId: string; topicId: string; name: string } | null>(null);
+
+  // View/edit logs for a topic
+  const [viewLogsTopic, setViewLogsTopic] = useState<{ subjectId: string; topicId: string; topicName: string } | null>(null);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editLogCorrect, setEditLogCorrect] = useState(0);
+  const [editLogWrong, setEditLogWrong] = useState(0);
+
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
     addSubject(newSubjectName.trim(), newSubjectColor);
