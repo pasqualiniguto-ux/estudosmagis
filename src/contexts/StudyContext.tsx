@@ -542,6 +542,23 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const updateStudyLog = useCallback(async (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.questionsCorrect !== undefined) dbUpdates.questions_correct = updates.questionsCorrect;
+    if (updates.questionsWrong !== undefined) dbUpdates.questions_wrong = updates.questionsWrong;
+    if (updates.topicName !== undefined) dbUpdates.topic_name = updates.topicName;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    await supabase.from('study_logs').update(dbUpdates).eq('id', id);
+    setStudyLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  }, [user]);
+
+  const removeStudyLog = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('study_logs').delete().eq('id', id);
+    setStudyLogs(prev => prev.filter(l => l.id !== id));
+  }, [user]);
+
   const getTopicStats = useCallback((topicId: string): TopicStats => {
     const logs = studyLogs.filter(l => l.topicId === topicId);
     const correct = logs.reduce((sum, l) => sum + l.questionsCorrect, 0);
