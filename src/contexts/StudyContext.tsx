@@ -38,6 +38,8 @@ interface StudyContextType {
   getProgressForEntry: (entryId: string, date: string) => number;
   getEntriesForDate: (date: string) => ScheduleEntry[];
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
+  updateStudyLog: (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => void;
+  removeStudyLog: (id: string) => void;
   getTopicStats: (topicId: string) => TopicStats;
   getSubjectStats: (subjectId: string) => TopicStats;
   addExam: (exam: Omit<Exam, 'id'>) => void;
@@ -309,8 +311,9 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (settingsRes.data) {
       setActiveCycleIndex(settingsRes.data.active_cycle_index);
       setCompletedCyclesCountState(settingsRes.data.completed_cycles_count);
-      if (settingsRes.data.note_font) setNoteFontState(settingsRes.data.note_font);
-      if (settingsRes.data.note_size) setNoteSizeState(settingsRes.data.note_size);
+      const settingsAny = settingsRes.data as any;
+      if (settingsAny.note_font) setNoteFontState(settingsAny.note_font);
+      if (settingsAny.note_size) setNoteSizeState(settingsAny.note_size);
     }
 
     setLoading(false);
@@ -539,6 +542,23 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const updateStudyLog = useCallback(async (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => {
+    if (!user) return;
+    const dbUpdates: any = {};
+    if (updates.questionsCorrect !== undefined) dbUpdates.questions_correct = updates.questionsCorrect;
+    if (updates.questionsWrong !== undefined) dbUpdates.questions_wrong = updates.questionsWrong;
+    if (updates.topicName !== undefined) dbUpdates.topic_name = updates.topicName;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    await supabase.from('study_logs').update(dbUpdates).eq('id', id);
+    setStudyLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  }, [user]);
+
+  const removeStudyLog = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from('study_logs').delete().eq('id', id);
+    setStudyLogs(prev => prev.filter(l => l.id !== id));
+  }, [user]);
+
   const getTopicStats = useCallback((topicId: string): TopicStats => {
     const logs = studyLogs.filter(l => l.topicId === topicId);
     const correct = logs.reduce((sum, l) => sum + l.questionsCorrect, 0);
@@ -655,7 +675,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
-      addStudyLog, getTopicStats, getSubjectStats,
+      addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
       addNote, updateNote, removeNote,
     }}>
