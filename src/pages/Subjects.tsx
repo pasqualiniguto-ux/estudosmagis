@@ -587,6 +587,93 @@ export default function Subjects() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Topic Dialog */}
+      <Dialog open={!!editTopicState} onOpenChange={o => { if (!o) setEditTopicState(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Editar assunto</DialogTitle></DialogHeader>
+          {editTopicState && (
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+                <Input
+                  placeholder="Nome do assunto"
+                  value={editTopicState.name}
+                  onChange={e => setEditTopicState({ ...editTopicState, name: e.target.value })}
+                  onKeyDown={e => e.key === 'Enter' && handleEditTopic()}
+                  autoFocus
+                />
+              </div>
+              <Button className="w-full" onClick={handleEditTopic} disabled={!editTopicState.name.trim()}>Salvar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View/Edit Logs Dialog */}
+      <Dialog open={!!viewLogsTopic} onOpenChange={o => { if (!o) { setViewLogsTopic(null); setEditingLogId(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Registros: {viewLogsTopic?.topicName}</DialogTitle></DialogHeader>
+          {viewLogsTopic && (
+            <div className="space-y-2 py-2 max-h-80 overflow-y-auto">
+              {getLogsForTopic(viewLogsTopic.topicId).length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum registro encontrado.</p>
+              ) : (
+                getLogsForTopic(viewLogsTopic.topicId)
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map(log => (
+                    <div key={log.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20">
+                      {editingLogId === log.id ? (
+                        <div className="flex-1 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-muted-foreground">Certas</label>
+                              <Input type="number" min={0} value={editLogCorrect} onChange={e => setEditLogCorrect(Number(e.target.value))} className="h-8 text-sm" />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground">Erradas</label>
+                              <Input type="number" min={0} value={editLogWrong} onChange={e => setEditLogWrong(Number(e.target.value))} className="h-8 text-sm" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="flex-1 h-7 text-xs" onClick={() => handleEditLog(log.id)}>Salvar</Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingLogId(null)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground">{log.date.split('-').reverse().join('/')}</p>
+                            <div className="flex gap-3 text-sm mt-0.5">
+                              <span className="text-primary font-medium">{log.questionsCorrect} ✓</span>
+                              <span className="text-destructive font-medium">{log.questionsWrong} ✗</span>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => { setEditingLogId(log.id); setEditLogCorrect(log.questionsCorrect); setEditLogWrong(log.questionsWrong); }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeStudyLog(log.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
