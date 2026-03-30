@@ -102,6 +102,19 @@ export default function Subjects() {
     setLogWrong(0);
   };
 
+  const handleEditTopic = () => {
+    if (!editTopicState || !editTopicState.name.trim()) return;
+    updateTopic(editTopicState.subjectId, editTopicState.topicId, { name: editTopicState.name.trim() });
+    setEditTopicState(null);
+  };
+
+  const handleEditLog = (logId: string) => {
+    updateStudyLog(logId, { questionsCorrect: editLogCorrect, questionsWrong: editLogWrong });
+    setEditingLogId(null);
+  };
+
+  const getLogsForTopic = (topicId: string) => studyLogs.filter(l => l.topicId === topicId);
+
   const toggleExpand = (id: string) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
   const handleUploadPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
