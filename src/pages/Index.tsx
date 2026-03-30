@@ -281,7 +281,7 @@ export default function Index() {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-2 block">Frequência</label>
-                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring')}>
+                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring' | 'daily')}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="once" id="freq-once" />
                     <Label htmlFor="freq-once" className="text-sm">Apenas nesta data</Label>
@@ -291,6 +291,10 @@ export default function Index() {
                     <Label htmlFor="freq-recurring" className="text-sm">
                       Repetir toda {addDate ? DAY_NAMES_FULL[(addDate.getDay() + 6) % 7] : ''}
                     </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="daily" id="freq-daily" />
+                    <Label htmlFor="freq-daily" className="text-sm">Repetir todos os dias</Label>
                   </div>
                 </RadioGroup>
               </div>
