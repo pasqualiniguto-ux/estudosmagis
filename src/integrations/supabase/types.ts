@@ -87,44 +87,6 @@ export type Database = {
           },
         ]
       }
-      notes: {
-        Row: {
-          id: string
-          user_id: string
-          subject_id: string | null
-          title: string
-          content: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          subject_id?: string | null
-          title: string
-          content?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          subject_id?: string | null
-          title?: string
-          content?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notes_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       exams: {
         Row: {
           created_at: string
@@ -157,6 +119,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notes: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          subject_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          subject_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          subject_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schedule_entries: {
         Row: {
@@ -252,30 +252,30 @@ export type Database = {
       subjects: {
         Row: {
           color: string | null
-          pdf_url: string | null
-          web_url: string | null
           created_at: string
           id: string
           name: string
+          pdf_url: string | null
           user_id: string
+          web_url: string | null
         }
         Insert: {
           color?: string | null
-          pdf_url?: string | null
-          web_url?: string | null
           created_at?: string
           id?: string
           name: string
+          pdf_url?: string | null
           user_id: string
+          web_url?: string | null
         }
         Update: {
           color?: string | null
-          pdf_url?: string | null
-          web_url?: string | null
           created_at?: string
           id?: string
           name?: string
+          pdf_url?: string | null
           user_id?: string
+          web_url?: string | null
         }
         Relationships: []
       }
@@ -285,27 +285,27 @@ export type Database = {
           id: string
           name: string
           pdf_url: string | null
-          web_url: string | null
           subject_id: string
           user_id: string
+          web_url: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           pdf_url?: string | null
-          web_url?: string | null
           subject_id: string
           user_id: string
+          web_url?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           pdf_url?: string | null
-          web_url?: string | null
           subject_id?: string
           user_id?: string
+          web_url?: string | null
         }
         Relationships: [
           {
@@ -323,6 +323,8 @@ export type Database = {
           completed_cycles_count: number
           created_at: string
           id: string
+          note_font: string | null
+          note_size: string | null
           user_id: string
         }
         Insert: {
@@ -330,6 +332,8 @@ export type Database = {
           completed_cycles_count?: number
           created_at?: string
           id?: string
+          note_font?: string | null
+          note_size?: string | null
           user_id: string
         }
         Update: {
@@ -337,6 +341,8 @@ export type Database = {
           completed_cycles_count?: number
           created_at?: string
           id?: string
+          note_font?: string | null
+          note_size?: string | null
           user_id?: string
         }
         Relationships: []
