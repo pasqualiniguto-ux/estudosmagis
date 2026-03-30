@@ -38,6 +38,8 @@ interface StudyContextType {
   getProgressForEntry: (entryId: string, date: string) => number;
   getEntriesForDate: (date: string) => ScheduleEntry[];
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
+  updateStudyLog: (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => void;
+  removeStudyLog: (id: string) => void;
   getTopicStats: (topicId: string) => TopicStats;
   getSubjectStats: (subjectId: string) => TopicStats;
   addExam: (exam: Omit<Exam, 'id'>) => void;
