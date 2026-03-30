@@ -309,8 +309,9 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (settingsRes.data) {
       setActiveCycleIndex(settingsRes.data.active_cycle_index);
       setCompletedCyclesCountState(settingsRes.data.completed_cycles_count);
-      if (settingsRes.data.note_font) setNoteFontState(settingsRes.data.note_font);
-      if (settingsRes.data.note_size) setNoteSizeState(settingsRes.data.note_size);
+      const settingsAny = settingsRes.data as any;
+      if (settingsAny.note_font) setNoteFontState(settingsAny.note_font);
+      if (settingsAny.note_size) setNoteSizeState(settingsAny.note_size);
     }
 
     setLoading(false);
