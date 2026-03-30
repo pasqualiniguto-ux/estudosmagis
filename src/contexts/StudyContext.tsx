@@ -675,7 +675,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       addScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
-      addStudyLog, getTopicStats, getSubjectStats,
+      addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
       addNote, updateNote, removeNote,
     }}>
