@@ -372,11 +372,31 @@ export default function Subjects() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => setEditTopicState({ subjectId: subject.id, topicId: topic.id, name: topic.name })}
+                            title="Editar assunto"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
                             onClick={() => { setLogTopic({ subjectId: subject.id, topicId: topic.id, topicName: topic.name }); setLogCorrect(0); setLogWrong(0); }}
                             title="Registrar questões"
                           >
                             <ClipboardList className="h-3 w-3" />
                           </Button>
+                          {getLogsForTopic(topic.id).length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-primary"
+                              onClick={() => { setViewLogsTopic({ subjectId: subject.id, topicId: topic.id, topicName: topic.name }); setEditingLogId(null); }}
+                              title="Ver/editar registros"
+                            >
+                              <span className="text-[10px] font-bold">📋</span>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
