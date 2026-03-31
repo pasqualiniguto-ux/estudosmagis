@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,6 +49,9 @@ export default function Subjects() {
 
   // Manual log per topic
   const [logTopic, setLogTopic] = useState<{ subjectId: string; topicId: string; topicName: string } | null>(null);
+
+  // Confirm delete state
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'subject' | 'topic'; subjectId: string; topicId?: string; name: string } | null>(null);
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
 
@@ -306,7 +310,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={e => { e.stopPropagation(); removeSubject(subject.id); }}
+                    onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'subject', subjectId: subject.id, name: subject.name }); }}
                     title="Remover matéria"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -401,7 +405,7 @@ export default function Subjects() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeTopic(subject.id, topic.id)}
+                            onClick={() => setConfirmDelete({ type: 'topic', subjectId: subject.id, topicId: topic.id, name: topic.name })}
                             title="Remover assunto"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -674,6 +678,36 @@ export default function Subjects() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={open => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete?.type === 'subject'
+                ? `A matéria "${confirmDelete?.name}" e todos os seus assuntos serão excluídos permanentemente.`
+                : `O assunto "${confirmDelete?.name}" e seus registros serão excluídos permanentemente.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDelete?.type === 'subject') {
+                  removeSubject(confirmDelete.subjectId);
+                } else if (confirmDelete?.type === 'topic' && confirmDelete.topicId) {
+                  removeTopic(confirmDelete.subjectId, confirmDelete.topicId);
+                }
+                setConfirmDelete(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
