@@ -124,6 +124,20 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
             <p className="text-sm text-muted-foreground">
               Tempo estudado nesta sessão: {fmt(elapsed)}
             </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Adicionar:</span>
+              {[1, 5, 15].map(m => (
+                <Button
+                  key={m}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setSecondsLeft(prev => prev + m * 60)}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" />+{m}min
+                </Button>
+              ))}
+            </div>
             <div className="flex gap-3">
               {!isRunning ? (
                 <Button onClick={() => setIsRunning(true)} disabled={secondsLeft === 0 && elapsed === 0}>
