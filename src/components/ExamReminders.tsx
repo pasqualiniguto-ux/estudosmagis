@@ -16,6 +16,7 @@ import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink } from 'lucid
 export default function ExamReminders() {
   const { subjects, exams, addExam, removeExam, updateExam } = useStudy();
   const [open, setOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date | undefined>();
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -23,17 +24,32 @@ export default function ExamReminders() {
   const [url, setUrl] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!name || !date) return;
-    addExam({
+    const data = {
       name,
       date: format(date, 'yyyy-MM-dd'),
       subjectIds: selectedSubjects,
       notes,
       url: url.trim() || undefined,
-    });
+    };
+    if (editingExamId) {
+      updateExam(editingExamId, data);
+    } else {
+      addExam(data);
+    }
     resetForm();
     setOpen(false);
+  };
+
+  const openEdit = (exam: typeof exams[0]) => {
+    setEditingExamId(exam.id);
+    setName(exam.name);
+    setDate(parseISO(exam.date));
+    setSelectedSubjects([...exam.subjectIds]);
+    setNotes(exam.notes);
+    setUrl(exam.url || '');
+    setOpen(true);
   };
 
   const resetForm = () => {
