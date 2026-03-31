@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Pause, Square } from 'lucide-react';
+import { Play, Pause, Square, Plus } from 'lucide-react';
 import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry, CycleEntry } from '@/types/study';
 
