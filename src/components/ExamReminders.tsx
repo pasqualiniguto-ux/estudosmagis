@@ -245,7 +245,7 @@ export default function ExamReminders() {
               <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.exemplo.com/edital" />
             </div>
 
-            <Button className="w-full" onClick={handleAdd} disabled={!name || !date}>Salvar</Button>
+            <Button className="w-full" onClick={handleSave} disabled={!name || !date}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
