@@ -405,7 +405,7 @@ export default function Subjects() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeTopic(subject.id, topic.id)}
+                            onClick={() => setConfirmDelete({ type: 'topic', subjectId: subject.id, topicId: topic.id, name: topic.name })}
                             title="Remover assunto"
                           >
                             <Trash2 className="h-3 w-3" />
