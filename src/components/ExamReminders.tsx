@@ -115,14 +115,24 @@ export default function ExamReminders() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-foreground text-sm truncate flex-1">{exam.name}</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-                    onClick={e => { e.stopPropagation(); removeExam(exam.id); }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={e => { e.stopPropagation(); openEdit(exam); }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={e => { e.stopPropagation(); removeExam(exam.id); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
