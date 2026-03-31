@@ -49,6 +49,9 @@ export default function Subjects() {
 
   // Manual log per topic
   const [logTopic, setLogTopic] = useState<{ subjectId: string; topicId: string; topicName: string } | null>(null);
+
+  // Confirm delete state
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'subject' | 'topic'; subjectId: string; topicId?: string; name: string } | null>(null);
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
 
