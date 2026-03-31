@@ -310,7 +310,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={e => { e.stopPropagation(); removeSubject(subject.id); }}
+                    onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'subject', subjectId: subject.id, name: subject.name }); }}
                     title="Remover matéria"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
