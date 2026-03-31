@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink, Pencil } from 'lucide-react';
 
 export default function ExamReminders() {
   const { subjects, exams, addExam, removeExam, updateExam } = useStudy();
