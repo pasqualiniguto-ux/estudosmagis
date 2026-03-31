@@ -678,6 +678,36 @@ export default function Subjects() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={open => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete?.type === 'subject'
+                ? `A matéria "${confirmDelete?.name}" e todos os seus assuntos serão excluídos permanentemente.`
+                : `O assunto "${confirmDelete?.name}" e seus registros serão excluídos permanentemente.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDelete?.type === 'subject') {
+                  removeSubject(confirmDelete.subjectId);
+                } else if (confirmDelete?.type === 'topic' && confirmDelete.topicId) {
+                  removeTopic(confirmDelete.subjectId, confirmDelete.topicId);
+                }
+                setConfirmDelete(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
