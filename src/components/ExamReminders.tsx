@@ -186,7 +186,7 @@ export default function ExamReminders() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Prova</DialogTitle>
+            <DialogTitle>{editingExamId ? 'Editar Prova' : 'Nova Prova'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
