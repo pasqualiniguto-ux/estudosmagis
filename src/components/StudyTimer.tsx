@@ -32,9 +32,11 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
   const [questionsWrong, setQuestionsWrong] = useState(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    // Only reset when dialog opens (transition from closed to open)
+    if (open && !prevOpenRef.current) {
       const prog = getProgressForEntry(entry.id, date);
       const rem = Math.max((entry.plannedMinutes * 60) - prog, 0);
       setSecondsLeft(rem);
@@ -45,6 +47,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       setQuestionsCorrect(0);
       setQuestionsWrong(0);
     }
+    prevOpenRef.current = open;
   }, [open, entry.id, entry.plannedMinutes, date, getProgressForEntry]);
 
   useEffect(() => {
