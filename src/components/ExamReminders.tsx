@@ -11,11 +11,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, BookOpen, Clock, ExternalLink, Pencil } from 'lucide-react';
 
 export default function ExamReminders() {
   const { subjects, exams, addExam, removeExam, updateExam } = useStudy();
   const [open, setOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [date, setDate] = useState<Date | undefined>();
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -23,20 +24,36 @@ export default function ExamReminders() {
   const [url, setUrl] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!name || !date) return;
-    addExam({
+    const data = {
       name,
       date: format(date, 'yyyy-MM-dd'),
       subjectIds: selectedSubjects,
       notes,
       url: url.trim() || undefined,
-    });
+    };
+    if (editingExamId) {
+      updateExam(editingExamId, data);
+    } else {
+      addExam(data);
+    }
     resetForm();
     setOpen(false);
   };
 
+  const openEdit = (exam: typeof exams[0]) => {
+    setEditingExamId(exam.id);
+    setName(exam.name);
+    setDate(parseISO(exam.date));
+    setSelectedSubjects([...exam.subjectIds]);
+    setNotes(exam.notes);
+    setUrl(exam.url || '');
+    setOpen(true);
+  };
+
   const resetForm = () => {
+    setEditingExamId(null);
     setName('');
     setDate(undefined);
     setSelectedSubjects([]);
@@ -98,14 +115,24 @@ export default function ExamReminders() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-foreground text-sm truncate flex-1">{exam.name}</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-                    onClick={e => { e.stopPropagation(); removeExam(exam.id); }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={e => { e.stopPropagation(); openEdit(exam); }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={e => { e.stopPropagation(); removeExam(exam.id); }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
@@ -159,7 +186,7 @@ export default function ExamReminders() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nova Prova</DialogTitle>
+            <DialogTitle>{editingExamId ? 'Editar Prova' : 'Nova Prova'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -218,7 +245,7 @@ export default function ExamReminders() {
               <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.exemplo.com/edital" />
             </div>
 
-            <Button className="w-full" onClick={handleAdd} disabled={!name || !date}>Salvar</Button>
+            <Button className="w-full" onClick={handleSave} disabled={!name || !date}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
