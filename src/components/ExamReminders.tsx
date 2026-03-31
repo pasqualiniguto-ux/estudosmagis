@@ -53,6 +53,7 @@ export default function ExamReminders() {
   };
 
   const resetForm = () => {
+    setEditingExamId(null);
     setName('');
     setDate(undefined);
     setSelectedSubjects([]);
