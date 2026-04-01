@@ -3,11 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Square, Plus, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Square, Plus } from 'lucide-react';
 import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry, CycleEntry } from '@/types/study';
-import { useAmbientSound, SOUND_LABELS, AmbientSoundType } from '@/hooks/useAmbientSound';
 
 interface Props {
   entry: ScheduleEntry | CycleEntry;
@@ -18,12 +16,9 @@ interface Props {
 
 type Phase = 'timer' | 'log';
 
-const AMBIENT_OPTIONS: AmbientSoundType[] = ['none', 'white', 'brown', 'pink', 'rain'];
-
 export default function StudyTimer({ entry, date, open, onClose }: Props) {
   const { subjects, addStudiedTime, addStudyLog, getProgressForEntry } = useStudy();
   const subject = subjects.find(s => s.id === entry.subjectId);
-  const { activeSound, play, stop: stopSound, volume, setVolume } = useAmbientSound();
 
   const currentProgress = getProgressForEntry(entry.id, date);
   const remainingPlanned = Math.max((entry.plannedMinutes * 60) - currentProgress, 0);
@@ -40,6 +35,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
   const prevOpenRef = useRef(false);
 
   useEffect(() => {
+    // Only reset when dialog opens (transition from closed to open)
     if (open && !prevOpenRef.current) {
       const prog = getProgressForEntry(entry.id, date);
       const rem = Math.max((entry.plannedMinutes * 60) - prog, 0);
@@ -53,11 +49,6 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     }
     prevOpenRef.current = open;
   }, [open, entry.id, entry.plannedMinutes, date, getProgressForEntry]);
-
-  // Stop ambient sound when dialog closes
-  useEffect(() => {
-    if (!open) stopSound();
-  }, [open, stopSound]);
 
   useEffect(() => {
     if (isRunning) {
@@ -85,7 +76,6 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleStop = () => {
     setIsRunning(false);
-    stopSound();
     if (elapsed > 0) {
       addStudiedTime(entry.id, date, elapsed);
       setPhase('log');
@@ -94,7 +84,6 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleCancel = () => {
     setIsRunning(false);
-    stopSound();
     onClose();
   };
 
@@ -157,42 +146,6 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
                 </Button>
               ))}
             </div>
-
-            {/* Ambient Sound Controls */}
-            <div className="w-full border rounded-lg p-3 space-y-2 bg-muted/30">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {activeSound !== 'none' ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
-                <span>Som ambiente</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {AMBIENT_OPTIONS.map(type => (
-                  <Button
-                    key={type}
-                    variant={activeSound === type ? 'default' : 'outline'}
-                    size="sm"
-                    className="text-xs h-7 px-2.5"
-                    onClick={() => play(type)}
-                  >
-                    {SOUND_LABELS[type]}
-                  </Button>
-                ))}
-              </div>
-              {activeSound !== 'none' && (
-                <div className="flex items-center gap-2 pt-1">
-                  <VolumeX className="h-3 w-3 text-muted-foreground" />
-                  <Slider
-                    value={[volume]}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onValueChange={([v]) => setVolume(v)}
-                    className="flex-1"
-                  />
-                  <Volume2 className="h-3 w-3 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-
             <div className="flex gap-3">
               {!isRunning ? (
                 <Button onClick={() => setIsRunning(true)} disabled={secondsLeft === 0 && elapsed === 0}>
