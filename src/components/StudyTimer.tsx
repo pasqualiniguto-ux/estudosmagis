@@ -82,6 +82,11 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     }
   };
 
+  const handleCancel = () => {
+    setIsRunning(false);
+    onClose();
+  };
+
   const handleSubmitLog = () => {
     const topic = subject?.topics.find(t => t.id === topicId);
     addStudyLog({
