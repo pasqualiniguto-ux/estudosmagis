@@ -139,8 +139,8 @@ export default function Index() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-foreground">Planejamento Semanal</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">Planejamento Semanal</h1>
+        <div className="mb-5">
           <StudyStreak />
         </div>
 
