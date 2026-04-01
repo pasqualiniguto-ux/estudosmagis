@@ -82,6 +82,11 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     }
   };
 
+  const handleCancel = () => {
+    setIsRunning(false);
+    onClose();
+  };
+
   const handleSubmitLog = () => {
     const topic = subject?.topics.find(t => t.id === topicId);
     addStudyLog({
@@ -153,6 +158,9 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
               )}
               <Button variant="destructive" onClick={handleStop} disabled={elapsed === 0}>
                 <Square className="h-4 w-4 mr-1" /> Encerrar
+              </Button>
+              <Button variant="ghost" onClick={handleCancel} className="text-muted-foreground">
+                Cancelar
               </Button>
             </div>
           </div>
