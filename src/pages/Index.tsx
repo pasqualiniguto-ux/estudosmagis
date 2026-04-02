@@ -83,6 +83,10 @@ export default function Index() {
   const [logTimeH, setLogTimeH] = useState(0);
   const [logTimeM, setLogTimeM] = useState(0);
 
+  // Notes for schedule entry
+  const [noteEntry, setNoteEntry] = useState<ScheduleEntry | null>(null);
+  const [noteText, setNoteText] = useState('');
+
   const handleAddEntry = async () => {
     if (!addDate || !addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
@@ -380,6 +384,38 @@ export default function Index() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Entry Notes Dialog */}
+      <Dialog open={!!noteEntry} onOpenChange={o => { if (!o) setNoteEntry(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Observação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Input
+              placeholder="Ex: Revisar capítulo 3, focar em exercícios..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => {
+                if (noteEntry) {
+                  updateScheduleEntry(noteEntry.id, { notes: noteText });
+                }
+                setNoteEntry(null);
+              }}>Salvar</Button>
+              {noteText && (
+                <Button variant="outline" onClick={() => {
+                  if (noteEntry) {
+                    updateScheduleEntry(noteEntry.id, { notes: '' });
+                  }
+                  setNoteEntry(null);
+                }}>Limpar</Button>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
