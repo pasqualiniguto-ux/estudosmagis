@@ -408,6 +408,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const updateScheduleEntry = useCallback(async (id: string, updates: { notes?: string }) => {
+    if (!user) return;
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    await supabase.from('schedule_entries').update(dbUpdates).eq('id', id);
+    setScheduleEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+  }, [user]);
+
   const removeScheduleEntry = useCallback(async (id: string) => {
     if (!user) return;
     await supabase.from('schedule_entries').delete().eq('id', id);
