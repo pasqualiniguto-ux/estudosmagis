@@ -28,6 +28,7 @@ interface StudyContextType {
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
+  updateScheduleEntry: (id: string, updates: { notes?: string }) => void;
   removeScheduleEntry: (id: string) => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
   removeCycleEntry: (id: string) => void;
@@ -261,6 +262,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       recurring: e.recurring,
       dayOfWeek: e.day_of_week,
       date: e.date,
+      notes: e.notes || '',
     })));
 
     setCycleEntries((cycleRes.data || []).map((e: any) => ({
@@ -404,6 +406,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         date: recurring ? undefined : date,
       }]);
     }
+  }, [user]);
+
+  const updateScheduleEntry = useCallback(async (id: string, updates: { notes?: string }) => {
+    if (!user) return;
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    await supabase.from('schedule_entries').update(dbUpdates).eq('id', id);
+    setScheduleEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
   }, [user]);
 
   const removeScheduleEntry = useCallback(async (id: string) => {
@@ -672,7 +682,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       noteFont, noteSize, setNoteFont, setNoteSize,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
-      addScheduleEntry, removeScheduleEntry, addStudiedTime,
+      addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
