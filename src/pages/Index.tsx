@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -211,7 +211,12 @@ export default function Index() {
                         <p className="text-[10px] text-muted-foreground mb-1.5">
                           {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}
                         </p>
-                        <Progress value={progress * 100} className="h-1.5 mb-2" />
+                        <Progress value={progress * 100} className="h-1.5 mb-1.5" />
+                        {entry.notes && (
+                          <p className="text-[9px] text-muted-foreground mb-1.5 italic truncate" title={entry.notes}>
+                            📝 {entry.notes}
+                          </p>
+                        )}
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-primary/10" onClick={() => setTimerEntry({ entry, date: dateStr })} title="Cronômetro">
                             <Play className="h-3 w-3" />
@@ -221,6 +226,9 @@ export default function Index() {
                           </Button>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setLogState({ entry, date: dateStr }); resetLogForm(); }} title="Registrar estudo">
                             <ClipboardList className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setNoteEntry(entry); setNoteText(entry.notes || ''); }} title="Observação">
+                            <StickyNote className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
