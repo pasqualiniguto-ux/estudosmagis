@@ -164,6 +164,7 @@ export type Database = {
           date: string | null
           day_of_week: number
           id: string
+          notes: string | null
           planned_minutes: number
           recurring: boolean
           subject_id: string
@@ -174,6 +175,7 @@ export type Database = {
           date?: string | null
           day_of_week?: number
           id?: string
+          notes?: string | null
           planned_minutes?: number
           recurring?: boolean
           subject_id: string
@@ -184,6 +186,7 @@ export type Database = {
           date?: string | null
           day_of_week?: number
           id?: string
+          notes?: string | null
           planned_minutes?: number
           recurring?: boolean
           subject_id?: string
