@@ -21,6 +21,7 @@ export interface ScheduleEntry {
   recurring: boolean;
   dayOfWeek: number; // 0=Mon, 1=Tue ... 6=Sun
   date?: string; // YYYY-MM-DD for one-time entries
+  notes?: string;
 }
 
 export interface CycleEntry {
