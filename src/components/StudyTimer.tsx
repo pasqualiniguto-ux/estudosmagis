@@ -113,7 +113,24 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     }
   }, [secondsLeft, elapsed, isRunning]);
 
-  const handleStop = () => {
+  const playChime = () => {
+    try {
+      const ctx = new AudioContext();
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.8);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.15);
+        osc.stop(ctx.currentTime + i * 0.15 + 0.8);
+      });
+    } catch {}
+  };
+
     setIsRunning(false);
     document.title = originalTitleRef.current;
     if (elapsed > 0) {
