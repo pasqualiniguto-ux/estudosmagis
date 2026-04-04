@@ -155,7 +155,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     onClose();
   };
 
-  const handleSubmitLog = () => {
+  const saveCurrentLog = () => {
     const topic = subject?.topics.find(t => t.id === topicId);
     addStudyLog({
       subjectId: entry.subjectId,
@@ -167,8 +167,21 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       questionsWrong,
       scheduleEntryId: entry.id,
     });
+    return { topicId: topicId || '', topicName: topic?.name || '', questionsCorrect, questionsWrong };
+  };
+
+  const handleSubmitLog = () => {
+    saveCurrentLog();
     document.title = originalTitleRef.current;
     onClose();
+  };
+
+  const handleAddAnotherTopic = () => {
+    const logged = saveCurrentLog();
+    setLoggedTopics(prev => [...prev, logged]);
+    setTopicId('');
+    setQuestionsCorrect(0);
+    setQuestionsWrong(0);
   };
 
   const handleSkipLog = () => {
