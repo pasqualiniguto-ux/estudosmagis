@@ -114,6 +114,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleStop = () => {
     setIsRunning(false);
+    document.title = originalTitleRef.current;
     if (elapsed > 0) {
       addStudiedTime(entry.id, date, elapsed);
       setPhase('log');
@@ -122,6 +123,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleCancel = () => {
     setIsRunning(false);
+    document.title = originalTitleRef.current;
     onClose();
   };
 
