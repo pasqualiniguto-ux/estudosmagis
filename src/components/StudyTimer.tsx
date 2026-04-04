@@ -255,6 +255,21 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
               Você estudou <span className="text-primary font-medium">{fmt(elapsed)}</span>. Registre os detalhes:
             </p>
 
+            {loggedTopics.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Assuntos já registrados:</label>
+                {loggedTopics.map((lt, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-foreground bg-primary/5 rounded px-2 py-1">
+                    <span className="text-primary">✓</span>
+                    <span className="font-medium">{lt.topicName || 'Sem assunto'}</span>
+                    {(lt.questionsCorrect > 0 || lt.questionsWrong > 0) && (
+                      <span className="text-muted-foreground ml-auto">{lt.questionsCorrect}✓ {lt.questionsWrong}✗</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {subject && subject.topics.length > 0 && (
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Assunto</label>
@@ -281,7 +296,14 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
             </div>
 
             <div className="flex gap-2 justify-end">
-              <Button variant="ghost" onClick={handleSkipLog}>Pular</Button>
+              <Button variant="ghost" onClick={handleSkipLog}>
+                {loggedTopics.length > 0 ? 'Finalizar' : 'Pular'}
+              </Button>
+              {subject && subject.topics.length > 0 && (
+                <Button variant="outline" onClick={handleAddAnotherTopic}>
+                  <Plus className="h-3 w-3 mr-1" /> Outro assunto
+                </Button>
+              )}
               <Button onClick={handleSubmitLog}>Salvar</Button>
             </div>
           </div>
