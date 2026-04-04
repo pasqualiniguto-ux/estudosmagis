@@ -139,10 +139,12 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       questionsWrong,
       scheduleEntryId: entry.id,
     });
+    document.title = originalTitleRef.current;
     onClose();
   };
 
   const handleSkipLog = () => {
+    document.title = originalTitleRef.current;
     onClose();
   };
 
