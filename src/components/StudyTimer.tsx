@@ -33,6 +33,11 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevOpenRef = useRef(false);
+  // Timestamp-based tracking to survive background tab throttling
+  const startTimestampRef = useRef<number | null>(null);
+  const elapsedBeforePauseRef = useRef(0);
+  const initialSecondsLeftRef = useRef(remainingPlanned);
+  const originalTitleRef = useRef(document.title);
 
   useEffect(() => {
     // Only reset when dialog opens (transition from closed to open)
@@ -40,34 +45,67 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       const prog = getProgressForEntry(entry.id, date);
       const rem = Math.max((entry.plannedMinutes * 60) - prog, 0);
       setSecondsLeft(rem);
+      initialSecondsLeftRef.current = rem;
       setIsRunning(false);
       setElapsed(0);
       setPhase('timer');
       setTopicId('');
       setQuestionsCorrect(0);
       setQuestionsWrong(0);
+      startTimestampRef.current = null;
+      elapsedBeforePauseRef.current = 0;
     }
     prevOpenRef.current = open;
   }, [open, entry.id, entry.plannedMinutes, date, getProgressForEntry]);
 
+  // Restore document title on unmount or close
+  useEffect(() => {
+    const savedTitle = document.title;
+    originalTitleRef.current = savedTitle;
+    return () => {
+      document.title = originalTitleRef.current;
+    };
+  }, []);
+
   useEffect(() => {
     if (isRunning) {
-      intervalRef.current = setInterval(() => {
-        setSecondsLeft(prev => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-        setElapsed(prev => prev + 1);
-      }, 1000);
+      startTimestampRef.current = Date.now();
+      const tick = () => {
+        const now = Date.now();
+        const runningSeconds = Math.floor((now - (startTimestampRef.current || now)) / 1000);
+        const totalElapsed = elapsedBeforePauseRef.current + runningSeconds;
+        const remaining = Math.max(initialSecondsLeftRef.current - totalElapsed + elapsedBeforePauseRef.current, 0);
+        
+        // Recalculate: remaining = initialSecondsLeft - totalElapsed relative to start
+        const newRemaining = Math.max(initialSecondsLeftRef.current - runningSeconds, 0);
+        
+        setElapsed(totalElapsed);
+        setSecondsLeft(newRemaining);
+
+        // Update browser tab title
+        document.title = `⏱ ${fmt(newRemaining)} — Estudando`;
+
+        if (newRemaining <= 0) {
+          setIsRunning(false);
+        }
+      };
+      tick(); // immediate first tick
+      intervalRef.current = setInterval(tick, 500); // 500ms for snappier updates after returning from background
+    } else {
+      // When pausing, accumulate elapsed time
+      if (startTimestampRef.current !== null) {
+        const runningSeconds = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+        elapsedBeforePauseRef.current += runningSeconds;
+        initialSecondsLeftRef.current = Math.max(initialSecondsLeftRef.current - runningSeconds, 0);
+        startTimestampRef.current = null;
+      }
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isRunning]);
 
+  // When timer finishes naturally
   useEffect(() => {
     if (secondsLeft === 0 && elapsed > 0 && !isRunning) {
       handleStop();
@@ -76,6 +114,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleStop = () => {
     setIsRunning(false);
+    document.title = originalTitleRef.current;
     if (elapsed > 0) {
       addStudiedTime(entry.id, date, elapsed);
       setPhase('log');
@@ -84,6 +123,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
   const handleCancel = () => {
     setIsRunning(false);
+    document.title = originalTitleRef.current;
     onClose();
   };
 
@@ -99,10 +139,12 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       questionsWrong,
       scheduleEntryId: entry.id,
     });
+    document.title = originalTitleRef.current;
     onClose();
   };
 
   const handleSkipLog = () => {
+    document.title = originalTitleRef.current;
     onClose();
   };
 
@@ -140,7 +182,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
                   variant="outline"
                   size="sm"
                   className="text-xs h-7 px-2"
-                  onClick={() => setSecondsLeft(prev => prev + m * 60)}
+                  onClick={() => { setSecondsLeft(prev => prev + m * 60); initialSecondsLeftRef.current += m * 60; }}
                 >
                   <Plus className="h-3 w-3 mr-0.5" />+{m}min
                 </Button>
