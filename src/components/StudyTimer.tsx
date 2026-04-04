@@ -180,7 +180,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
                   variant="outline"
                   size="sm"
                   className="text-xs h-7 px-2"
-                  onClick={() => setSecondsLeft(prev => prev + m * 60)}
+                  onClick={() => { setSecondsLeft(prev => prev + m * 60); initialSecondsLeftRef.current += m * 60; }}
                 >
                   <Plus className="h-3 w-3 mr-0.5" />+{m}min
                 </Button>
