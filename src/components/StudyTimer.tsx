@@ -87,6 +87,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
 
         if (newRemaining <= 0) {
           setIsRunning(false);
+          playChime();
         }
       };
       tick(); // immediate first tick
