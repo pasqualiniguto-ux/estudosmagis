@@ -131,6 +131,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
     } catch {}
   };
 
+  const handleStop = () => {
     setIsRunning(false);
     document.title = originalTitleRef.current;
     if (elapsed > 0) {
