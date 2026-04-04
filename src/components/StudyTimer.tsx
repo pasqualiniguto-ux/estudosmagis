@@ -60,6 +60,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
       setTopicId('');
       setQuestionsCorrect(0);
       setQuestionsWrong(0);
+      setLoggedTopics([]);
       startTimestampRef.current = null;
       elapsedBeforePauseRef.current = 0;
     }
