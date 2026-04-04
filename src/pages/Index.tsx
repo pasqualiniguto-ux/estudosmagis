@@ -54,7 +54,7 @@ function fmtDateShort(d: Date): string {
 }
 
 export default function Index() {
-  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry } = useStudy();
+  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs } = useStudy();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
@@ -216,6 +216,20 @@ export default function Index() {
                           {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}
                         </p>
                         <Progress value={progress * 100} className="h-1.5 mb-1.5" />
+                        {(() => {
+                          const entryLogs = studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName);
+                          if (entryLogs.length === 0) return null;
+                          const uniqueTopics = [...new Set(entryLogs.map(l => l.topicName))];
+                          return (
+                            <div className="flex flex-wrap gap-0.5 mb-1.5">
+                              {uniqueTopics.map(name => (
+                                <span key={name} className="text-[8px] bg-primary/10 text-primary rounded px-1 py-0.5 leading-tight">
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                         {entry.notes && (
                           <p className="text-[9px] text-muted-foreground mb-1.5 italic truncate" title={entry.notes}>
                             📝 {entry.notes}
