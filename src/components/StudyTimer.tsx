@@ -16,6 +16,13 @@ interface Props {
 
 type Phase = 'timer' | 'log';
 
+interface LoggedTopic {
+  topicId: string;
+  topicName: string;
+  questionsCorrect: number;
+  questionsWrong: number;
+}
+
 export default function StudyTimer({ entry, date, open, onClose }: Props) {
   const { subjects, addStudiedTime, addStudyLog, getProgressForEntry } = useStudy();
   const subject = subjects.find(s => s.id === entry.subjectId);
@@ -30,6 +37,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
   const [topicId, setTopicId] = useState('');
   const [questionsCorrect, setQuestionsCorrect] = useState(0);
   const [questionsWrong, setQuestionsWrong] = useState(0);
+  const [loggedTopics, setLoggedTopics] = useState<LoggedTopic[]>([]);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevOpenRef = useRef(false);
