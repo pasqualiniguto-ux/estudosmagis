@@ -24,7 +24,7 @@ interface LoggedTopic {
 }
 
 export default function StudyTimer({ entry, date, open, onClose }: Props) {
-  const { subjects, addStudiedTime, addStudyLog, getProgressForEntry } = useStudy();
+  const { subjects, addStudiedTime, addStudyLog, getProgressForEntry, studyLogs } = useStudy();
   const subject = subjects.find(s => s.id === entry.subjectId);
 
   const currentProgress = getProgressForEntry(entry.id, date);
@@ -271,8 +271,6 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
             )}
 
             {subject && subject.topics.length > 0 && (() => {
-              // Sort topics: never studied first, then oldest studied first
-              const { studyLogs } = useStudy();
               const loggedIds = new Set(loggedTopics.map(lt => lt.topicId));
               const sortedTopics = [...subject.topics].sort((a, b) => {
                 const aLogs = studyLogs.filter(l => l.topicId === a.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
