@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -323,10 +323,28 @@ export default function Subjects() {
                     )}
                     {subject.topics.map(topic => {
                       const stats = getTopicStats(topic.id);
+                      const topicLogs = studyLogs.filter(l => l.topicId === topic.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
+                      const lastLog = topicLogs.length > 0 ? topicLogs.sort((a, b) => b.date.localeCompare(a.date))[0] : null;
+                      const lastDateLabel = lastLog
+                        ? (() => {
+                            const today = todayStr();
+                            if (lastLog.date === today) return 'Hoje';
+                            const diff = Math.floor((new Date(today).getTime() - new Date(lastLog.date).getTime()) / 86400000);
+                            if (diff === 1) return 'Ontem';
+                            return `${diff}d atrás`;
+                          })()
+                        : null;
                       return (
                         <div key={topic.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors">
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            {lastDateLabel ? (
+                              <span className="flex items-center gap-1 text-muted-foreground/70">
+                                <Clock className="h-3 w-3" />{lastDateLabel}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/50 italic text-[10px]">Nunca estudado</span>
+                            )}
                             {stats.total > 0 && (
                               <>
                                 <span>{stats.total} questões</span>
