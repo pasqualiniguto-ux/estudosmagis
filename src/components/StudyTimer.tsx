@@ -295,7 +295,7 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
                           <span className="flex items-center gap-1.5">
                             {t.name}
                             {isRecommended && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-500">
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-primary">
                                 <Sparkles className="h-3 w-3" /> Sugerido
                               </span>
                             )}
