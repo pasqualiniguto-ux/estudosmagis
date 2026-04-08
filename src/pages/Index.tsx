@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -228,6 +228,32 @@ export default function Index() {
                                 </span>
                               ))}
                             </div>
+                          );
+                        })()}
+                        {(() => {
+                          const subj = subjects.find(s => s.id === entry.subjectId);
+                          if (!subj || subj.topics.length === 0) return null;
+                          const entryLogTopicIds = new Set(studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName).map(l => l.topicId));
+                          const sortedTopics = [...subj.topics].sort((a, b) => {
+                            const aLogs = studyLogs.filter(l => l.topicId === a.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
+                            const bLogs = studyLogs.filter(l => l.topicId === b.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
+                            const aLast = aLogs.length > 0 ? aLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
+                            const bLast = bLogs.length > 0 ? bLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
+                            if (!aLast && bLast) return -1;
+                            if (aLast && !bLast) return 1;
+                            return aLast.localeCompare(bLast);
+                          });
+                          const recommended = sortedTopics.find(t => !entryLogTopicIds.has(t.id));
+                          if (!recommended) return null;
+                          const recLogs = studyLogs.filter(l => l.topicId === recommended.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
+                          const neverStudied = recLogs.length === 0;
+                          return (
+                            <p className="text-[9px] text-muted-foreground mb-1 flex items-center gap-1 truncate" title={`Sugestão: ${recommended.name}`}>
+                              <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
+                              <span className="truncate">
+                                {neverStudied ? recommended.name : `${recommended.name}`}
+                              </span>
+                            </p>
                           );
                         })()}
                         {entry.notes && (
