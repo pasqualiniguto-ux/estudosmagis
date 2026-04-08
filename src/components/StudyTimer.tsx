@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Pause, Square, Plus, Sparkles } from 'lucide-react';
+import { Play, Pause, Square, Plus } from 'lucide-react';
 import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry, CycleEntry } from '@/types/study';
 
@@ -24,7 +24,7 @@ interface LoggedTopic {
 }
 
 export default function StudyTimer({ entry, date, open, onClose }: Props) {
-  const { subjects, addStudiedTime, addStudyLog, getProgressForEntry, studyLogs } = useStudy();
+  const { subjects, addStudiedTime, addStudyLog, getProgressForEntry } = useStudy();
   const subject = subjects.find(s => s.id === entry.subjectId);
 
   const currentProgress = getProgressForEntry(entry.id, date);
@@ -270,44 +270,19 @@ export default function StudyTimer({ entry, date, open, onClose }: Props) {
               </div>
             )}
 
-            {subject && subject.topics.length > 0 && (() => {
-              const loggedIds = new Set(loggedTopics.map(lt => lt.topicId));
-              const sortedTopics = [...subject.topics].sort((a, b) => {
-                const aLogs = studyLogs.filter(l => l.topicId === a.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
-                const bLogs = studyLogs.filter(l => l.topicId === b.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
-                const aLastDate = aLogs.length > 0 ? aLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
-                const bLastDate = bLogs.length > 0 ? bLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
-                if (!aLastDate && bLastDate) return -1;
-                if (aLastDate && !bLastDate) return 1;
-                return aLastDate.localeCompare(bLastDate);
-              });
-              const recommendedId = sortedTopics.find(t => !loggedIds.has(t.id))?.id;
-              return (
+            {subject && subject.topics.length > 0 && (
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Assunto</label>
                 <Select value={topicId} onValueChange={setTopicId}>
                   <SelectTrigger><SelectValue placeholder="Selecione o assunto" /></SelectTrigger>
                   <SelectContent>
-                    {sortedTopics.map(t => {
-                      const isRecommended = t.id === recommendedId;
-                      return (
-                        <SelectItem key={t.id} value={t.id}>
-                          <span className="flex items-center gap-1.5">
-                            {t.name}
-                            {isRecommended && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-primary">
-                                <Sparkles className="h-3 w-3" /> Sugerido
-                              </span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
+                    {subject.topics.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              );
-            })()}
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
