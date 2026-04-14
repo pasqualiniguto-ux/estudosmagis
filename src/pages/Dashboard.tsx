@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Clock, Target, TrendingUp, BookOpen } from 'lucide-react';
+import StudyRecommendation from '@/components/StudyRecommendation';
 
 function fmtHours(seconds: number): string {
   const h = Math.floor(seconds / 3600);
