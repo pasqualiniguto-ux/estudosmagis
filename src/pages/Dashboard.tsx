@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Clock, Target, TrendingUp, BookOpen } from 'lucide-react';
+import StudyRecommendation from '@/components/StudyRecommendation';
 
 function fmtHours(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -89,7 +90,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Dashboard</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <StudyRecommendation />
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
