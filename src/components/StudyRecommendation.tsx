@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useStudy } from '@/contexts/StudyContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Sparkles, AlertTriangle, TrendingDown, BookOpen, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sparkles, AlertTriangle, TrendingDown, BookOpen, Clock, CalendarCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface TopicRecommendation {
@@ -28,14 +28,33 @@ interface SubjectSummary {
 }
 
 export default function StudyRecommendation() {
-  const { subjects, studyLogs, getTopicStats, getSubjectStats } = useStudy();
+  const { subjects, studyLogs, exams, getTopicStats, getSubjectStats } = useStudy();
   const [open, setOpen] = useState(false);
+  const [selectedExamId, setSelectedExamId] = useState<string>('all');
+
+  // Future exams sorted by date
+  const upcomingExams = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return exams
+      .filter(e => e.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [exams]);
+
+  // Filter subjects based on selected exam
+  const filteredSubjects = useMemo(() => {
+    if (selectedExamId === 'all') return subjects;
+    const exam = exams.find(e => e.id === selectedExamId);
+    if (!exam) return subjects;
+    return subjects.filter(s => exam.subjectIds.includes(s.id));
+  }, [subjects, exams, selectedExamId]);
+
+  const selectedExam = exams.find(e => e.id === selectedExamId);
 
   const analysis = useMemo(() => {
     const subjectSummaries: SubjectSummary[] = [];
     const topicRecs: TopicRecommendation[] = [];
 
-    subjects.forEach(subject => {
+    filteredSubjects.forEach(subject => {
       const subjectStats = getSubjectStats(subject.id);
       const weakTopics: string[] = [];
       let topicsNeverStudied = 0;
@@ -46,7 +65,6 @@ export default function StudyRecommendation() {
         const lastLog = logsForTopic.sort((a, b) => b.date.localeCompare(a.date))[0];
         const lastStudied = lastLog?.date || null;
 
-        // Never studied
         if (stats.total === 0) {
           topicsNeverStudied++;
           topicRecs.push({
@@ -62,7 +80,6 @@ export default function StudyRecommendation() {
           return;
         }
 
-        // Low performance (< 60%)
         if (stats.percentage < 60) {
           weakTopics.push(topic.name);
           topicRecs.push({
@@ -78,7 +95,6 @@ export default function StudyRecommendation() {
           return;
         }
 
-        // Few questions (< 10) even if good performance
         if (stats.total < 10 && stats.percentage < 80) {
           topicRecs.push({
             subjectName: subject.name,
@@ -93,7 +109,6 @@ export default function StudyRecommendation() {
           return;
         }
 
-        // Not studied recently (> 14 days)
         if (lastStudied) {
           const daysSince = Math.floor((Date.now() - new Date(lastStudied).getTime()) / 86400000);
           if (daysSince > 14) {
@@ -124,7 +139,6 @@ export default function StudyRecommendation() {
       }
     });
 
-    // Sort: alta first, then média, then baixa; within same priority, lower percentage first
     const priorityOrder = { alta: 0, média: 1, baixa: 2 };
     topicRecs.sort((a, b) => {
       const p = priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -132,11 +146,10 @@ export default function StudyRecommendation() {
       return a.percentage - b.percentage;
     });
 
-    // Sort subjects by worst performance
     subjectSummaries.sort((a, b) => a.percentage - b.percentage);
 
     return { subjectSummaries, topicRecs };
-  }, [subjects, studyLogs, getTopicStats, getSubjectStats]);
+  }, [filteredSubjects, studyLogs, getTopicStats, getSubjectStats]);
 
   const priorityIcon = (p: 'alta' | 'média' | 'baixa') => {
     if (p === 'alta') return <AlertTriangle className="h-3.5 w-3.5 text-red-500" />;
@@ -150,7 +163,7 @@ export default function StudyRecommendation() {
     return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
   };
 
-  const hasData = subjects.some(s => s.topics.length > 0);
+  const hasData = filteredSubjects.some(s => s.topics.length > 0);
 
   return (
     <>
@@ -171,9 +184,39 @@ export default function StudyRecommendation() {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Exam selector */}
+          {upcomingExams.length > 0 && (
+            <div className="flex items-center gap-3">
+              <CalendarCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma prova" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as matérias</SelectItem>
+                  {upcomingExams.map(exam => (
+                    <SelectItem key={exam.id} value={exam.id}>
+                      {exam.name} — {new Date(exam.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {selectedExam && (
+            <div className="rounded-lg bg-accent/50 border p-3">
+              <p className="text-xs text-muted-foreground">
+                Exibindo sugestões para <strong className="text-foreground">{selectedExam.name}</strong> ({filteredSubjects.length} matéria{filteredSubjects.length !== 1 ? 's' : ''}) — {new Date(selectedExam.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+          )}
+
           {!hasData ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              Adicione matérias e assuntos para receber recomendações personalizadas.
+              {selectedExamId !== 'all'
+                ? 'Nenhum assunto cadastrado nas matérias desta prova.'
+                : 'Adicione matérias e assuntos para receber recomendações personalizadas.'}
             </p>
           ) : analysis.topicRecs.length === 0 ? (
             <div className="py-6 text-center space-y-2">
