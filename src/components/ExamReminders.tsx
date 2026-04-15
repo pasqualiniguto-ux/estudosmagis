@@ -66,9 +66,22 @@ export default function ExamReminders() {
   };
 
   const toggleSubject = (id: string) => {
-    setSelectedSubjects(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    );
+    setSelectedSubjects(prev => {
+      const next = prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id];
+      if (!next.includes(id)) {
+        setQuestionCounts(c => { const copy = { ...c }; delete copy[id]; return copy; });
+      }
+      return next;
+    });
+  };
+
+  const setQuestionCount = (subjectId: string, count: number) => {
+    setQuestionCounts(prev => ({ ...prev, [subjectId]: count }));
+  };
+
+  const getTotalQuestions = (exam: typeof exams[0]) => {
+    if (!exam.subjectQuestionCounts) return 0;
+    return Object.values(exam.subjectQuestionCounts).reduce((sum, n) => sum + n, 0);
   };
 
   const getDaysLeft = (dateStr: string) => {
