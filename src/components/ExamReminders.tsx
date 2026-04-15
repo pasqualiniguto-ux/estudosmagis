@@ -22,6 +22,7 @@ export default function ExamReminders() {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [url, setUrl] = useState('');
+  const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleSave = () => {
@@ -32,6 +33,7 @@ export default function ExamReminders() {
       subjectIds: selectedSubjects,
       notes,
       url: url.trim() || undefined,
+      subjectQuestionCounts: questionCounts,
     };
     if (editingExamId) {
       updateExam(editingExamId, data);
@@ -49,6 +51,7 @@ export default function ExamReminders() {
     setSelectedSubjects([...exam.subjectIds]);
     setNotes(exam.notes);
     setUrl(exam.url || '');
+    setQuestionCounts(exam.subjectQuestionCounts || {});
     setOpen(true);
   };
 
@@ -59,6 +62,7 @@ export default function ExamReminders() {
     setSelectedSubjects([]);
     setNotes('');
     setUrl('');
+    setQuestionCounts({});
   };
 
   const toggleSubject = (id: string) => {
