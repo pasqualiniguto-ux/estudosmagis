@@ -157,18 +157,28 @@ export default function ExamReminders() {
                   <span>{format(parseISO(exam.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
                 </div>
 
-                <div className={cn('flex items-center gap-1.5 text-sm font-semibold mb-3', daysColor)}>
-                  <Clock className="h-4 w-4" />
-                  <span>{daysLeft}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className={cn('flex items-center gap-1.5 text-sm font-semibold', daysColor)}>
+                    <Clock className="h-4 w-4" />
+                    <span>{daysLeft}</span>
+                  </div>
+                  {getTotalQuestions(exam) > 0 && (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {getTotalQuestions(exam)} questões
+                    </span>
+                  )}
                 </div>
 
                 {examSubjects.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {(isExpanded ? examSubjects : examSubjects.slice(0, 4)).map(s => (
-                      <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {s.name}
-                      </span>
-                    ))}
+                    {(isExpanded ? examSubjects : examSubjects.slice(0, 4)).map(s => {
+                      const qCount = exam.subjectQuestionCounts?.[s.id];
+                      return (
+                        <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                          {s.name}{qCount ? ` (${qCount}q)` : ''}
+                        </span>
+                      );
+                    })}
                     {!isExpanded && examSubjects.length > 4 && (
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                         +{examSubjects.length - 4}
@@ -237,16 +247,27 @@ export default function ExamReminders() {
 
             {subjects.length > 0 && (
               <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Matérias exigidas</label>
-                <div className="max-h-40 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+                <label className="text-xs text-muted-foreground mb-2 block">Matérias exigidas e nº de questões</label>
+                <div className="max-h-52 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
                   {subjects.map(s => (
-                    <label key={s.id} className="flex items-center gap-2 cursor-pointer">
+                    <div key={s.id} className="flex items-center gap-2">
                       <Checkbox
                         checked={selectedSubjects.includes(s.id)}
                         onCheckedChange={() => toggleSubject(s.id)}
                       />
-                      <span className="text-sm text-foreground">{s.name}</span>
-                    </label>
+                      <span className="text-sm text-foreground flex-1 truncate">{s.name}</span>
+                      {selectedSubjects.includes(s.id) && (
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Qtd"
+                          className="w-16 h-7 text-xs text-center"
+                          value={questionCounts[s.id] || ''}
+                          onChange={e => setQuestionCount(s.id, parseInt(e.target.value) || 0)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
