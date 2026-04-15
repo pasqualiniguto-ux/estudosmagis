@@ -1,0 +1,1 @@
+ALTER TABLE public.exams ADD COLUMN subject_question_counts jsonb NOT NULL DEFAULT '{}'::jsonb;

@@ -95,6 +95,7 @@ export type Database = {
           name: string
           notes: string
           subject_ids: string[]
+          subject_question_counts: Json
           url: string | null
           user_id: string
         }
@@ -105,6 +106,7 @@ export type Database = {
           name: string
           notes?: string
           subject_ids?: string[]
+          subject_question_counts?: Json
           url?: string | null
           user_id: string
         }
@@ -115,6 +117,7 @@ export type Database = {
           name?: string
           notes?: string
           subject_ids?: string[]
+          subject_question_counts?: Json
           url?: string | null
           user_id?: string
         }

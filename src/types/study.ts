@@ -58,6 +58,7 @@ export interface Exam {
   subjectIds: string[];
   notes: string;
   url?: string;
+  subjectQuestionCounts?: Record<string, number>;
 }
 
 export interface NoteBlock {

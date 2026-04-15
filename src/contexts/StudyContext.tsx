@@ -299,6 +299,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subjectIds: e.subject_ids || [],
       notes: e.notes,
       url: e.url,
+      subjectQuestionCounts: e.subject_question_counts || {},
     })));
 
     setNotes((notesRes.data || []).map((n: any) => ({
@@ -594,6 +595,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subject_ids: exam.subjectIds,
       notes: exam.notes,
       url: exam.url || null,
+      subject_question_counts: exam.subjectQuestionCounts || {},
     }).select('id').single();
     if (data) {
       setExams(prev => [...prev, { ...exam, id: data.id }]);
@@ -614,6 +616,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.subjectIds !== undefined) dbUpdates.subject_ids = updates.subjectIds;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.url !== undefined) dbUpdates.url = updates.url;
+    if (updates.subjectQuestionCounts !== undefined) dbUpdates.subject_question_counts = updates.subjectQuestionCounts;
     await supabase.from('exams').update(dbUpdates).eq('id', id);
     setExams(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
   }, [user]);
