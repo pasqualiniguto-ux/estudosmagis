@@ -93,9 +93,6 @@ export default function Index() {
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [recurringDropChoice, setRecurringDropChoice] = useState<{ entry: ScheduleEntry; targetDate: Date; targetDateStr: string } | null>(null);
 
-  // Clear schedule confirmation
-  const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
-
   const handleClearSchedule = async () => {
     await clearSchedule();
     setClearScheduleConfirm(false);
