@@ -90,6 +90,7 @@ export default function Index() {
   // Drag and drop
   const [draggedEntry, setDraggedEntry] = useState<{ entry: ScheduleEntry; sourceDate: string } | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [recurringDropChoice, setRecurringDropChoice] = useState<{ entry: ScheduleEntry; targetDate: Date; targetDateStr: string } | null>(null);
 
   const handleDrop = (targetDate: Date, targetDateStr: string) => {
     if (!draggedEntry) return;
@@ -99,11 +100,28 @@ export default function Index() {
     if (sourceDate === targetDateStr) return;
     const targetDayOfWeek = (targetDate.getDay() + 6) % 7;
     if (entry.recurring) {
-      // Converte em entrada única no dia destino (evita mover toda a recorrência)
-      updateScheduleEntry(entry.id, { recurring: false, dayOfWeek: targetDayOfWeek, date: targetDateStr });
+      // Pergunta ao usuário como deseja remanejar a recorrência
+      setRecurringDropChoice({ entry, targetDate, targetDateStr });
     } else {
       updateScheduleEntry(entry.id, { dayOfWeek: targetDayOfWeek, date: targetDateStr });
     }
+  };
+
+  const applyRecurringDrop = (mode: 'once' | 'changeDay' | 'duplicate') => {
+    if (!recurringDropChoice) return;
+    const { entry, targetDate, targetDateStr } = recurringDropChoice;
+    const targetDayOfWeek = (targetDate.getDay() + 6) % 7;
+    if (mode === 'once') {
+      // Apenas nesta semana: vira entrada única no dia destino
+      updateScheduleEntry(entry.id, { recurring: false, dayOfWeek: targetDayOfWeek, date: targetDateStr });
+    } else if (mode === 'changeDay') {
+      // Altera o dia da recorrência permanentemente
+      updateScheduleEntry(entry.id, { recurring: true, dayOfWeek: targetDayOfWeek, date: null as unknown as string | undefined });
+    } else if (mode === 'duplicate') {
+      // Mantém a recorrência original e cria uma cópia única no dia destino
+      addScheduleEntry(entry.subjectId, entry.plannedMinutes, false, targetDayOfWeek, targetDateStr);
+    }
+    setRecurringDropChoice(null);
   };
 
   const handleAddEntry = async () => {
