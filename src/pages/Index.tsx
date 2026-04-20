@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -54,8 +54,9 @@ function fmtDateShort(d: Date): string {
 }
 
 export default function Index() {
-  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs } = useStudy();
+  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule } = useStudy();
 
+  const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const todayStr = toDateStr(nowBrasilia());
@@ -91,6 +92,11 @@ export default function Index() {
   const [draggedEntry, setDraggedEntry] = useState<{ entry: ScheduleEntry; sourceDate: string } | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [recurringDropChoice, setRecurringDropChoice] = useState<{ entry: ScheduleEntry; targetDate: Date; targetDateStr: string } | null>(null);
+
+  const handleClearSchedule = async () => {
+    await clearSchedule();
+    setClearScheduleConfirm(false);
+  };
 
   const handleDrop = (targetDate: Date, targetDateStr: string) => {
     if (!draggedEntry) return;
@@ -186,19 +192,26 @@ export default function Index() {
         </div>
 
         {/* Week Navigation */}
-        <div className="flex items-center justify-center gap-3 mb-5">
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
-            {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
-          </span>
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-          {weekOffset !== 0 && (
-            <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
-          )}
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
+              {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
+            </span>
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {weekOffset !== 0 && (
+              <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
+            )}
+            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
+              <Trash className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center mb-3">💡 Arraste uma matéria para outro dia para remanejá-la</p>
@@ -553,6 +566,31 @@ export default function Index() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear schedule confirmation */}
+      <Dialog open={clearScheduleConfirm} onOpenChange={setClearScheduleConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Limpar cronograma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja remover <span className="font-medium text-foreground">todas as matérias</span> do cronograma?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setClearScheduleConfirm(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={handleClearSchedule}>
+                Limpar tudo
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

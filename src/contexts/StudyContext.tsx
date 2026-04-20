@@ -30,6 +30,7 @@ interface StudyContextType {
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
   removeScheduleEntry: (id: string) => void;
+  clearSchedule: () => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
@@ -434,6 +435,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setScheduleEntries(prev => prev.filter(e => e.id !== id));
   }, [user]);
 
+  const clearSchedule = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('schedule_entries').delete().eq('user_id', user.id);
+    setScheduleEntries([]);
+  }, [user]);
+
   const addCycleEntry = useCallback(async (subjectId: string, plannedMinutes: number) => {
     if (!user) return;
     const order = cycleEntries.length;
@@ -696,7 +703,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       noteFont, noteSize, setNoteFont, setNoteSize,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
-      addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime,
+      addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
