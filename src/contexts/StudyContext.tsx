@@ -435,6 +435,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setScheduleEntries(prev => prev.filter(e => e.id !== id));
   }, [user]);
 
+  const clearSchedule = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('schedule_entries').delete().eq('user_id', user.id);
+    setScheduleEntries([]);
+  }, [user]);
+
   const addCycleEntry = useCallback(async (subjectId: string, plannedMinutes: number) => {
     if (!user) return;
     const order = cycleEntries.length;
