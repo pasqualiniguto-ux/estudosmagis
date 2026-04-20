@@ -34,8 +34,11 @@ export default function Subjects() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectColor, setNewSubjectColor] = useState(SUBJECT_COLORS[0]);
+  const [newSubjectCategory, setNewSubjectCategory] = useState<'specific' | 'general'>('specific');
 
-  const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string } | null>(null);
+  const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string, category: 'specific' | 'general' } | null>(null);
+
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'specific' | 'general'>('all');
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
@@ -66,15 +69,16 @@ export default function Subjects() {
 
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
-    addSubject(newSubjectName.trim(), newSubjectColor);
+    addSubject(newSubjectName.trim(), newSubjectColor, newSubjectCategory);
     setNewSubjectName('');
     setNewSubjectColor(SUBJECT_COLORS[0]);
+    setNewSubjectCategory('specific');
     setShowAddSubject(false);
   };
 
   const handleEditSubject = () => {
     if (!editSubjectState || !editSubjectState.name.trim()) return;
-    updateSubject(editSubjectState.id, { name: editSubjectState.name.trim(), color: editSubjectState.color });
+    updateSubject(editSubjectState.id, { name: editSubjectState.name.trim(), color: editSubjectState.color, category: editSubjectState.category });
     setEditSubjectState(null);
   };
 
