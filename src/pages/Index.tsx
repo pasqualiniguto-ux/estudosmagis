@@ -183,7 +183,10 @@ export default function Index() {
           )}
         </div>
 
+        <p className="text-xs text-muted-foreground text-center mb-3">💡 Arraste uma matéria para outro dia para remanejá-la</p>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+
           {weekDates.map((dateObj, i) => {
             const dateStr = toDateStr(dateObj);
             const isToday = dateStr === todayStr;
