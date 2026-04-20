@@ -56,6 +56,7 @@ function fmtDateShort(d: Date): string {
 export default function Index() {
   const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule } = useStudy();
 
+  const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const todayStr = toDateStr(nowBrasilia());
