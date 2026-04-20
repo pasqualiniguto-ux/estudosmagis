@@ -257,6 +257,7 @@ export type Database = {
       }
       subjects: {
         Row: {
+          category: string
           color: string | null
           created_at: string
           id: string
@@ -266,6 +267,7 @@ export type Database = {
           web_url: string | null
         }
         Insert: {
+          category?: string
           color?: string | null
           created_at?: string
           id?: string
@@ -275,6 +277,7 @@ export type Database = {
           web_url?: string | null
         }
         Update: {
+          category?: string
           color?: string | null
           created_at?: string
           id?: string
