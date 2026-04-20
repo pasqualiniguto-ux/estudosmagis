@@ -190,7 +190,17 @@ export default function Index() {
             const dayEntries = getEntriesForDate(dateStr);
 
             return (
-              <div key={dateStr} className={`rounded-xl border p-3 flex flex-col ${isToday ? 'bg-primary/5 border-primary/30' : 'bg-card border-border'}`}>
+              <div
+                key={dateStr}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
+                onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverDate(prev => prev === dateStr ? null : prev); }}
+                onDrop={() => handleDrop(dateObj, dateStr)}
+                className={`rounded-xl border p-3 flex flex-col transition-colors ${
+                  dragOverDate === dateStr && draggedEntry && draggedEntry.sourceDate !== dateStr
+                    ? 'bg-primary/15 border-primary border-dashed'
+                    : isToday ? 'bg-primary/5 border-primary/30' : 'bg-card border-border'
+                }`}
+              >
                 <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
                   {DAY_NAMES[i]} {fmtDateShort(dateObj)}
                 </h3>
@@ -202,17 +212,24 @@ export default function Index() {
                     const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
                     const isCompleted = progress >= 1;
                     const hasProgress = studied > 0 && !isCompleted;
+                    const isDragging = draggedEntry?.entry.id === entry.id && draggedEntry.sourceDate === dateStr;
 
                     return (
                       <div
                         key={entry.id + dateStr}
-                        className={`p-2.5 rounded-lg border transition-all ${
+                        draggable
+                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggedEntry({ entry, sourceDate: dateStr }); }}
+                        onDragEnd={() => { setDraggedEntry(null); setDragOverDate(null); }}
+                        className={`p-2.5 rounded-lg border transition-all cursor-grab active:cursor-grabbing ${
+                          isDragging ? 'opacity-40' : ''
+                        } ${
                           isCompleted ? 'border-primary/20 bg-primary/5 opacity-60'
                           : hasProgress ? 'border-primary/40 bg-primary/5'
                           : 'border-border bg-secondary/30'
                         }`}
                         style={subject?.color ? { borderLeft: `4px solid ${subject.color}` } : undefined}
                       >
+
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-xs font-semibold truncate ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                             {subject?.name || '—'}
