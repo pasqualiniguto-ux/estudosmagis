@@ -21,7 +21,7 @@ interface StudyContextType {
   exams: Exam[];
   notes: Note[];
   loading: boolean;
-  addSubject: (name: string, color?: string) => void;
+  addSubject: (name: string, color?: string, category?: 'specific' | 'general') => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
   addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
@@ -252,6 +252,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       color: s.color,
       pdfUrl: s.pdf_url || undefined,
       webUrl: s.web_url || undefined,
+      category: (s.category === 'general' ? 'general' : 'specific') as 'specific' | 'general',
       topics: topicsBySubject[s.id] || [],
     })));
 
@@ -324,13 +325,13 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   // --- CRUD operations ---
 
-  const addSubject = useCallback(async (name: string, color?: string) => {
+  const addSubject = useCallback(async (name: string, color?: string, category: 'specific' | 'general' = 'specific') => {
     if (!user) return;
     const { data } = await supabase.from('subjects').insert({
-      user_id: user.id, name, color: color || null,
-    }).select('id').single();
+      user_id: user.id, name, color: color || null, category,
+    } as any).select('id').single();
     if (data) {
-      setSubjects(prev => [...prev, { id: data.id, name, color, topics: [] }]);
+      setSubjects(prev => [...prev, { id: data.id, name, color, category, topics: [] }]);
     }
   }, [user]);
 
@@ -341,6 +342,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.color !== undefined) dbUpdates.color = updates.color;
     if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
     if (updates.webUrl !== undefined) dbUpdates.web_url = updates.webUrl;
+    if ((updates as any).category !== undefined) dbUpdates.category = (updates as any).category;
     await supabase.from('subjects').update(dbUpdates).eq('id', id);
     setSubjects(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   }, [user]);
