@@ -515,6 +515,46 @@ export default function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Recurring drop choice dialog */}
+      <Dialog open={!!recurringDropChoice} onOpenChange={o => { if (!o) setRecurringDropChoice(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Matéria recorrente</DialogTitle>
+          </DialogHeader>
+          {recurringDropChoice && (() => {
+            const subj = subjects.find(s => s.id === recurringDropChoice.entry.subjectId);
+            const targetDayName = DAY_NAMES_FULL[(recurringDropChoice.targetDate.getDay() + 6) % 7];
+            return (
+              <div className="space-y-3 py-2">
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{subj?.name}</span> é recorrente. Como deseja remanejá-la para <span className="font-medium text-foreground">{targetDayName} ({fmtDateShort(recurringDropChoice.targetDate)})</span>?
+                </p>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('once')}>
+                    <div>
+                      <div className="font-medium text-sm">Mover apenas nesta semana</div>
+                      <div className="text-xs text-muted-foreground">Vira uma entrada única no dia destino e a recorrência deixa de existir</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('changeDay')}>
+                    <div>
+                      <div className="font-medium text-sm">Alterar o dia da recorrência</div>
+                      <div className="text-xs text-muted-foreground">A matéria passará a se repetir toda {targetDayName}</div>
+                    </div>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('duplicate')}>
+                    <div>
+                      <div className="font-medium text-sm">Duplicar nesta data</div>
+                      <div className="text-xs text-muted-foreground">Mantém a recorrência original e adiciona uma cópia única no dia destino</div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
