@@ -96,6 +96,11 @@ export default function Index() {
   // Clear schedule confirmation
   const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
 
+  const handleClearSchedule = async () => {
+    await clearSchedule();
+    setClearScheduleConfirm(false);
+  };
+
   const handleDrop = (targetDate: Date, targetDateStr: string) => {
     if (!draggedEntry) return;
     const { entry, sourceDate } = draggedEntry;
