@@ -30,6 +30,7 @@ interface StudyContextType {
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
   removeScheduleEntry: (id: string) => void;
+  clearSchedule: () => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
