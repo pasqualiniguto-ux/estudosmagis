@@ -34,8 +34,11 @@ export default function Subjects() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectColor, setNewSubjectColor] = useState(SUBJECT_COLORS[0]);
+  const [newSubjectCategory, setNewSubjectCategory] = useState<'specific' | 'general'>('specific');
 
-  const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string } | null>(null);
+  const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string, category: 'specific' | 'general' } | null>(null);
+
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'specific' | 'general'>('all');
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
@@ -66,15 +69,16 @@ export default function Subjects() {
 
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
-    addSubject(newSubjectName.trim(), newSubjectColor);
+    addSubject(newSubjectName.trim(), newSubjectColor, newSubjectCategory);
     setNewSubjectName('');
     setNewSubjectColor(SUBJECT_COLORS[0]);
+    setNewSubjectCategory('specific');
     setShowAddSubject(false);
   };
 
   const handleEditSubject = () => {
     if (!editSubjectState || !editSubjectState.name.trim()) return;
-    updateSubject(editSubjectState.id, { name: editSubjectState.name.trim(), color: editSubjectState.color });
+    updateSubject(editSubjectState.id, { name: editSubjectState.name.trim(), color: editSubjectState.color, category: editSubjectState.category });
     setEditSubjectState(null);
   };
 
@@ -211,12 +215,30 @@ export default function Subjects() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6 max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-foreground">Matérias</h1>
           <Button size="sm" onClick={() => setShowAddSubject(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova matéria
           </Button>
         </div>
+
+        {subjects.length > 0 && (
+          <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4 w-fit">
+            {([
+              { id: 'all', label: `Todas (${subjects.length})` },
+              { id: 'specific', label: `Específicos (${subjects.filter(s => (s.category || 'specific') === 'specific').length})` },
+              { id: 'general', label: `Gerais (${subjects.filter(s => s.category === 'general').length})` },
+            ] as const).map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setCategoryFilter(opt.id)}
+                className={`text-xs px-3 py-1.5 rounded-md transition-colors font-medium ${categoryFilter === opt.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {subjects.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
@@ -226,7 +248,7 @@ export default function Subjects() {
         )}
 
         <div className="space-y-3">
-          {subjects.map(subject => {
+          {subjects.filter(s => categoryFilter === 'all' ? true : (s.category || 'specific') === categoryFilter).map(subject => {
             const isExpanded = expanded[subject.id];
             return (
               <div key={subject.id} className="bg-card rounded-xl border border-border overflow-hidden">
@@ -292,7 +314,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={e => { e.stopPropagation(); setEditSubjectState({ id: subject.id, name: subject.name, color: subject.color || SUBJECT_COLORS[0] }); }}
+                    onClick={e => { e.stopPropagation(); setEditSubjectState({ id: subject.id, name: subject.name, color: subject.color || SUBJECT_COLORS[0], category: subject.category || 'specific' }); }}
                     title="Editar matéria"
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -461,12 +483,25 @@ export default function Subjects() {
                 ))}
               </div>
             </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Categoria</label>
+              <div className="flex gap-2">
+                {([{ id: 'specific', label: 'Específico' }, { id: 'general', label: 'Geral' }] as const).map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setNewSubjectCategory(opt.id)}
+                    className={`flex-1 text-sm px-3 py-2 rounded-md border transition-colors ${newSubjectCategory === opt.id ? 'border-primary bg-primary/10 text-foreground font-medium' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button className="w-full" onClick={handleAddSubject} disabled={!newSubjectName.trim()}>Adicionar</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Edit Subject Dialog */}
       <Dialog open={!!editSubjectState} onOpenChange={o => { if (!o) setEditSubjectState(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Editar matéria</DialogTitle></DialogHeader>
@@ -486,6 +521,21 @@ export default function Subjects() {
                       className={`h-6 w-6 rounded-full border-2 focus:outline-none transition-all ${editSubjectState.color === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105'}`}
                       style={{ backgroundColor: c }}
                     />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Categoria</label>
+                <div className="flex gap-2">
+                  {([{ id: 'specific', label: 'Específico' }, { id: 'general', label: 'Geral' }] as const).map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setEditSubjectState({ ...editSubjectState, category: opt.id })}
+                      className={`flex-1 text-sm px-3 py-2 rounded-md border transition-colors ${editSubjectState.category === opt.id ? 'border-primary bg-primary/10 text-foreground font-medium' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                    >
+                      {opt.label}
+                    </button>
                   ))}
                 </div>
               </div>

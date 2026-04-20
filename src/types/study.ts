@@ -1,9 +1,12 @@
+export type SubjectCategory = 'specific' | 'general';
+
 export interface Subject {
   id: string;
   name: string;
   color?: string;
   pdfUrl?: string;
   webUrl?: string;
+  category: SubjectCategory;
   topics: Topic[];
 }
 
