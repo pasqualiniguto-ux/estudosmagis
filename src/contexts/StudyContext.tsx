@@ -411,12 +411,21 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  const updateScheduleEntry = useCallback(async (id: string, updates: { notes?: string }) => {
+  const updateScheduleEntry = useCallback(async (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => {
     if (!user) return;
-    const dbUpdates: { notes?: string } = {};
+    const dbUpdates: any = {};
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.dayOfWeek !== undefined) dbUpdates.day_of_week = updates.dayOfWeek;
+    if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.recurring !== undefined) dbUpdates.recurring = updates.recurring;
     await supabase.from('schedule_entries').update(dbUpdates).eq('id', id);
-    setScheduleEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    setScheduleEntries(prev => prev.map(e => e.id === id ? {
+      ...e,
+      ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
+      ...(updates.dayOfWeek !== undefined ? { dayOfWeek: updates.dayOfWeek } : {}),
+      ...(updates.date !== undefined ? { date: updates.date ?? undefined } : {}),
+      ...(updates.recurring !== undefined ? { recurring: updates.recurring } : {}),
+    } : e));
   }, [user]);
 
   const removeScheduleEntry = useCallback(async (id: string) => {
