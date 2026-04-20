@@ -568,6 +568,31 @@ export default function Index() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Clear schedule confirmation */}
+      <Dialog open={clearScheduleConfirm} onOpenChange={setClearScheduleConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Limpar cronograma</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja remover <span className="font-medium text-foreground">todas as matérias</span> do cronograma?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setClearScheduleConfirm(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" className="flex-1" onClick={handleClearSchedule}>
+                Limpar tudo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
