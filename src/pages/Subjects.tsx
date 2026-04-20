@@ -524,6 +524,21 @@ export default function Subjects() {
                   ))}
                 </div>
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Categoria</label>
+                <div className="flex gap-2">
+                  {([{ id: 'specific', label: 'Específico' }, { id: 'general', label: 'Geral' }] as const).map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setEditSubjectState({ ...editSubjectState, category: opt.id })}
+                      className={`flex-1 text-sm px-3 py-2 rounded-md border transition-colors ${editSubjectState.category === opt.id ? 'border-primary bg-primary/10 text-foreground font-medium' : 'border-border text-muted-foreground hover:bg-muted/50'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Button className="w-full" onClick={handleEditSubject} disabled={!editSubjectState.name.trim()}>Salvar</Button>
             </div>
           )}
