@@ -296,7 +296,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={e => { e.stopPropagation(); setEditSubjectState({ id: subject.id, name: subject.name, color: subject.color || SUBJECT_COLORS[0] }); }}
+                    onClick={e => { e.stopPropagation(); setEditSubjectState({ id: subject.id, name: subject.name, color: subject.color || SUBJECT_COLORS[0], category: subject.category || 'specific' }); }}
                     title="Editar matéria"
                   >
                     <Pencil className="h-3.5 w-3.5" />
