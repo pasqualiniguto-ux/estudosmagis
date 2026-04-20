@@ -192,19 +192,26 @@ export default function Index() {
         </div>
 
         {/* Week Navigation */}
-        <div className="flex items-center justify-center gap-3 mb-5">
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
-            {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
-          </span>
-          <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-          {weekOffset !== 0 && (
-            <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
-          )}
+        <div className="flex items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
+              {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
+            </span>
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            {weekOffset !== 0 && (
+              <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
+            )}
+            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
+              <Trash className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground text-center mb-3">💡 Arraste uma matéria para outro dia para remanejá-la</p>
