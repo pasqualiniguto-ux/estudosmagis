@@ -215,12 +215,30 @@ export default function Subjects() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6 max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-foreground">Matérias</h1>
           <Button size="sm" onClick={() => setShowAddSubject(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova matéria
           </Button>
         </div>
+
+        {subjects.length > 0 && (
+          <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4 w-fit">
+            {([
+              { id: 'all', label: `Todas (${subjects.length})` },
+              { id: 'specific', label: `Específicos (${subjects.filter(s => (s.category || 'specific') === 'specific').length})` },
+              { id: 'general', label: `Gerais (${subjects.filter(s => s.category === 'general').length})` },
+            ] as const).map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setCategoryFilter(opt.id)}
+                className={`text-xs px-3 py-1.5 rounded-md transition-colors font-medium ${categoryFilter === opt.id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {subjects.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
@@ -230,7 +248,7 @@ export default function Subjects() {
         )}
 
         <div className="space-y-3">
-          {subjects.map(subject => {
+          {subjects.filter(s => categoryFilter === 'all' ? true : (s.category || 'specific') === categoryFilter).map(subject => {
             const isExpanded = expanded[subject.id];
             return (
               <div key={subject.id} className="bg-card rounded-xl border border-border overflow-hidden">
