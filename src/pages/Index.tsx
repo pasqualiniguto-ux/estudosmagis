@@ -116,7 +116,7 @@ export default function Index() {
       updateScheduleEntry(entry.id, { recurring: false, dayOfWeek: targetDayOfWeek, date: targetDateStr });
     } else if (mode === 'changeDay') {
       // Altera o dia da recorrência permanentemente
-      updateScheduleEntry(entry.id, { recurring: true, dayOfWeek: targetDayOfWeek, date: null as unknown as string | undefined });
+      updateScheduleEntry(entry.id, { recurring: true, dayOfWeek: targetDayOfWeek, date: null });
     } else if (mode === 'duplicate') {
       // Mantém a recorrência original e cria uma cópia única no dia destino
       addScheduleEntry(entry.subjectId, entry.plannedMinutes, false, targetDayOfWeek, targetDateStr);
