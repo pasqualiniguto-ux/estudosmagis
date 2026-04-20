@@ -87,6 +87,25 @@ export default function Index() {
   const [noteEntry, setNoteEntry] = useState<ScheduleEntry | null>(null);
   const [noteText, setNoteText] = useState('');
 
+  // Drag and drop
+  const [draggedEntry, setDraggedEntry] = useState<{ entry: ScheduleEntry; sourceDate: string } | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+
+  const handleDrop = (targetDate: Date, targetDateStr: string) => {
+    if (!draggedEntry) return;
+    const { entry, sourceDate } = draggedEntry;
+    setDragOverDate(null);
+    setDraggedEntry(null);
+    if (sourceDate === targetDateStr) return;
+    const targetDayOfWeek = (targetDate.getDay() + 6) % 7;
+    if (entry.recurring) {
+      // Converte em entrada única no dia destino (evita mover toda a recorrência)
+      updateScheduleEntry(entry.id, { recurring: false, dayOfWeek: targetDayOfWeek, date: targetDateStr });
+    } else {
+      updateScheduleEntry(entry.id, { dayOfWeek: targetDayOfWeek, date: targetDateStr });
+    }
+  };
+
   const handleAddEntry = async () => {
     if (!addDate || !addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
