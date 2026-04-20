@@ -28,7 +28,7 @@ interface StudyContextType {
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
-  updateScheduleEntry: (id: string, updates: { notes?: string }) => void;
+  updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
   removeScheduleEntry: (id: string) => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
   removeCycleEntry: (id: string) => void;
