@@ -106,6 +106,60 @@ export default function Notes() {
     }
   };
 
+  // ============ PDF reader ============
+  const pdfFolder = useMemo(() => {
+    if (!user) return '';
+    return `pdfs/${user.id}/${localSubjectId || 'general'}`;
+  }, [user, localSubjectId]);
+
+  useEffect(() => {
+    if (!user || !pdfFolder) { setSavedPdfs([]); return; }
+    (async () => {
+      const { data, error } = await supabase.storage.from('study_materials').list(pdfFolder, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+      if (error || !data) { setSavedPdfs([]); return; }
+      const items = data
+        .filter(f => f.name.toLowerCase().endsWith('.pdf'))
+        .map(f => {
+          const path = `${pdfFolder}/${f.name}`;
+          const { data: pub } = supabase.storage.from('study_materials').getPublicUrl(path);
+          return { name: f.name, url: pub.publicUrl, path };
+        });
+      setSavedPdfs(items);
+    })();
+  }, [user, pdfFolder, uploadingPdf]);
+
+  const handleUploadPdf = async (file: File) => {
+    if (!user) return;
+    if (file.type !== 'application/pdf') {
+      toast({ title: 'Apenas arquivos PDF', variant: 'destructive' });
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${pdfFolder}/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from('study_materials').upload(path, file, { contentType: 'application/pdf', upsert: false });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from('study_materials').getPublicUrl(path);
+      setPdfUrl(pub.publicUrl);
+      setPdfName(file.name);
+      toast({ title: 'PDF carregado' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao enviar PDF', description: e.message, variant: 'destructive' });
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleDeletePdf = async (path: string) => {
+    if (!confirm('Excluir este PDF?')) return;
+    const { error } = await supabase.storage.from('study_materials').remove([path]);
+    if (error) { toast({ title: 'Erro ao excluir', variant: 'destructive' }); return; }
+    setSavedPdfs(prev => prev.filter(p => p.path !== path));
+    const pubUrl = supabase.storage.from('study_materials').getPublicUrl(path).data.publicUrl;
+    if (pdfUrl === pubUrl) { setPdfUrl(null); setPdfName(''); }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <AppNavigation />
