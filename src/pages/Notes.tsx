@@ -6,14 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Loader2, List } from 'lucide-react';
+import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Loader2, List, FileText, Upload, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +26,13 @@ export default function Notes() {
   const [localContent, setLocalContent] = useState('');
   const [localSubjectId, setLocalSubjectId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+
+  // PDF reader state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfName, setPdfName] = useState<string>('');
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [savedPdfs, setSavedPdfs] = useState<{ name: string; url: string; path: string }[]>([]);
+  const [showPdfList, setShowPdfList] = useState(false);
 
   const selectedNote = useMemo(() =>
     notes.find(n => n.id === selectedNoteId),
@@ -96,6 +106,60 @@ export default function Notes() {
     }
   };
 
+  // ============ PDF reader ============
+  const pdfFolder = useMemo(() => {
+    if (!user) return '';
+    return `pdfs/${user.id}/${localSubjectId || 'general'}`;
+  }, [user, localSubjectId]);
+
+  useEffect(() => {
+    if (!user || !pdfFolder) { setSavedPdfs([]); return; }
+    (async () => {
+      const { data, error } = await supabase.storage.from('study_materials').list(pdfFolder, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+      if (error || !data) { setSavedPdfs([]); return; }
+      const items = data
+        .filter(f => f.name.toLowerCase().endsWith('.pdf'))
+        .map(f => {
+          const path = `${pdfFolder}/${f.name}`;
+          const { data: pub } = supabase.storage.from('study_materials').getPublicUrl(path);
+          return { name: f.name, url: pub.publicUrl, path };
+        });
+      setSavedPdfs(items);
+    })();
+  }, [user, pdfFolder, uploadingPdf]);
+
+  const handleUploadPdf = async (file: File) => {
+    if (!user) return;
+    if (file.type !== 'application/pdf') {
+      toast({ title: 'Apenas arquivos PDF', variant: 'destructive' });
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${pdfFolder}/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from('study_materials').upload(path, file, { contentType: 'application/pdf', upsert: false });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from('study_materials').getPublicUrl(path);
+      setPdfUrl(pub.publicUrl);
+      setPdfName(file.name);
+      toast({ title: 'PDF carregado' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao enviar PDF', description: e.message, variant: 'destructive' });
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handleDeletePdf = async (path: string) => {
+    if (!confirm('Excluir este PDF?')) return;
+    const { error } = await supabase.storage.from('study_materials').remove([path]);
+    if (error) { toast({ title: 'Erro ao excluir', variant: 'destructive' }); return; }
+    setSavedPdfs(prev => prev.filter(p => p.path !== path));
+    const pubUrl = supabase.storage.from('study_materials').getPublicUrl(path).data.publicUrl;
+    if (pdfUrl === pubUrl) { setPdfUrl(null); setPdfName(''); }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <AppNavigation />
@@ -135,7 +199,7 @@ export default function Notes() {
           <ResizablePanel defaultSize={80}>
             {selectedNoteId ? (
               <div className="flex flex-col h-full bg-background">
-                <div className="px-6 py-3 border-b border-border bg-card/10 flex items-center justify-between">
+                <div className="px-6 py-3 border-b border-border bg-card/10 flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelectedNoteId(null)}><ChevronRight className="h-5 w-5 rotate-180" /></Button>
                     <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none max-w-[120px] truncate">
@@ -144,24 +208,76 @@ export default function Notes() {
                     </select>
                     {isSaving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}><Trash2 className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Button variant={pdfUrl ? 'default' : 'outline'} size="sm" className="h-8 gap-1.5" onClick={() => setShowPdfList(v => !v)}>
+                        <FileText className="h-4 w-4" />
+                        <span className="hidden sm:inline">{pdfUrl ? (pdfName.length > 18 ? pdfName.slice(0, 18) + '…' : pdfName) : 'PDF'}</span>
+                      </Button>
+                      {showPdfList && (
+                        <div className="absolute right-0 top-full mt-2 w-72 bg-popover border border-border rounded-lg shadow-lg z-20 p-2 max-h-80 overflow-auto">
+                          <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
+                            {uploadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            <span className="text-sm">{uploadingPdf ? 'Enviando...' : 'Carregar PDF'}</span>
+                            <input type="file" accept="application/pdf" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadPdf(f); e.target.value = ''; }} />
+                          </label>
+                          <p className="text-[10px] text-muted-foreground mt-2 px-1">PDFs salvos para {localSubjectId ? subjects.find(s => s.id === localSubjectId)?.name : 'Geral'}:</p>
+                          <div className="mt-1 space-y-1">
+                            {savedPdfs.length === 0 && <p className="text-xs text-muted-foreground p-2">Nenhum PDF.</p>}
+                            {savedPdfs.map(p => (
+                              <div key={p.path} className="group flex items-center gap-1 rounded hover:bg-muted/50">
+                                <button className="flex-1 text-left text-xs p-2 truncate" onClick={() => { setPdfUrl(p.url); setPdfName(p.name.replace(/^\d+_/, '')); setShowPdfList(false); }}>
+                                  <FileText className="h-3 w-3 inline mr-1.5 text-primary" />
+                                  {p.name.replace(/^\d+_/, '')}
+                                </button>
+                                <button onClick={() => handleDeletePdf(p.path)} className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {pdfUrl && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setPdfUrl(null); setPdfName(''); }} title="Fechar PDF"><X className="h-4 w-4" /></Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteNote(selectedNoteId)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
                 </div>
 
-                <div className="flex-1 flex flex-col p-6 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
-                  <input
-                    type="text"
-                    placeholder="Título da nota..."
-                    className="text-2xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-4"
-                    value={localTitle}
-                    onChange={e => setLocalTitle(e.target.value)}
-                  />
-                  <Textarea
-                    placeholder="Comece a escrever..."
-                    className="flex-1 resize-none border-none shadow-none focus-visible:ring-0 text-base leading-relaxed bg-transparent p-0"
-                    value={localContent}
-                    onChange={e => setLocalContent(e.target.value)}
-                  />
-                </div>
+                <ResizablePanelGroup direction="horizontal" className="flex-1">
+                  <ResizablePanel defaultSize={pdfUrl ? 50 : 100} minSize={25}>
+                    <div className="h-full flex flex-col p-6 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
+                      <input
+                        type="text"
+                        placeholder="Título da nota..."
+                        className="text-2xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-4"
+                        value={localTitle}
+                        onChange={e => setLocalTitle(e.target.value)}
+                      />
+                      <Textarea
+                        placeholder="Comece a escrever..."
+                        className="flex-1 resize-none border-none shadow-none focus-visible:ring-0 text-base leading-relaxed bg-transparent p-0"
+                        value={localContent}
+                        onChange={e => setLocalContent(e.target.value)}
+                      />
+                    </div>
+                  </ResizablePanel>
+                  {pdfUrl && (
+                    <>
+                      <ResizableHandle />
+                      <ResizablePanel defaultSize={50} minSize={25}>
+                        <div className="h-full bg-muted/20 flex flex-col">
+                          <div className="px-3 py-2 border-b border-border flex items-center gap-2 text-xs">
+                            <FileText className="h-3.5 w-3.5 text-primary" />
+                            <span className="truncate flex-1" title={pdfName}>{pdfName}</span>
+                            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Abrir</a>
+                          </div>
+                          <iframe src={pdfUrl} title="PDF Reader" className="flex-1 w-full border-0 bg-background" />
+                        </div>
+                      </ResizablePanel>
+                    </>
+                  )}
+                </ResizablePanelGroup>
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-12 opacity-20">
