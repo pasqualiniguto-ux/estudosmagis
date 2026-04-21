@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Loader2, List } from 'lucide-react';
+import { Plus, Search, Trash2, NotebookPen, Clock, ChevronRight, Loader2, List, FileText, Upload, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
