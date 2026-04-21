@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +26,13 @@ export default function Notes() {
   const [localContent, setLocalContent] = useState('');
   const [localSubjectId, setLocalSubjectId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
+
+  // PDF reader state
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfName, setPdfName] = useState<string>('');
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [savedPdfs, setSavedPdfs] = useState<{ name: string; url: string; path: string }[]>([]);
+  const [showPdfList, setShowPdfList] = useState(false);
 
   const selectedNote = useMemo(() =>
     notes.find(n => n.id === selectedNoteId),
