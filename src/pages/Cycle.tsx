@@ -31,7 +31,7 @@ function fmtPlanned(minutes: number): string {
 import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, setCompletedCyclesCount } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
 
   const todayStr = getTodayStr();
 
