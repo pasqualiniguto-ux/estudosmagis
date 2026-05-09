@@ -293,6 +293,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       questionsCorrect: l.questions_correct,
       questionsWrong: l.questions_wrong,
       scheduleEntryId: l.schedule_entry_id,
+      notes: l.notes || '',
     })));
 
     setExams((examsRes.data || []).map((e: any) => ({
