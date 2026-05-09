@@ -52,6 +52,7 @@ export interface StudyLog {
   questionsCorrect: number;
   questionsWrong: number;
   scheduleEntryId: string;
+  notes?: string;
 }
 
 export interface Exam {
