@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 import FixedCycleItems from '@/components/FixedCycleItems';
 
