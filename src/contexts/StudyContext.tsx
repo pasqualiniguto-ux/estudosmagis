@@ -580,6 +580,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       questions_correct: log.questionsCorrect,
       questions_wrong: log.questionsWrong,
       schedule_entry_id: log.scheduleEntryId,
+      notes: log.notes || '',
     }).select('id').single();
     if (data) {
       setStudyLogs(prev => [...prev, { ...log, id: data.id }]);
