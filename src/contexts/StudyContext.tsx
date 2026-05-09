@@ -293,6 +293,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       questionsCorrect: l.questions_correct,
       questionsWrong: l.questions_wrong,
       scheduleEntryId: l.schedule_entry_id,
+      notes: l.notes || '',
     })));
 
     setExams((examsRes.data || []).map((e: any) => ({
@@ -579,6 +580,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       questions_correct: log.questionsCorrect,
       questions_wrong: log.questionsWrong,
       schedule_entry_id: log.scheduleEntryId,
+      notes: log.notes || '',
     }).select('id').single();
     if (data) {
       setStudyLogs(prev => [...prev, { ...log, id: data.id }]);
@@ -592,6 +594,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.questionsWrong !== undefined) dbUpdates.questions_wrong = updates.questionsWrong;
     if (updates.topicName !== undefined) dbUpdates.topic_name = updates.topicName;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.timeStudiedSeconds !== undefined) dbUpdates.time_studied_seconds = updates.timeStudiedSeconds;
     await supabase.from('study_logs').update(dbUpdates).eq('id', id);
     setStudyLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
   }, [user]);

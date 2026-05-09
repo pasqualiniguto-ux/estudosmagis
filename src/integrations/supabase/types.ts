@@ -210,6 +210,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          notes: string
           questions_correct: number
           questions_wrong: number
           schedule_entry_id: string
@@ -223,6 +224,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          notes?: string
           questions_correct?: number
           questions_wrong?: number
           schedule_entry_id?: string
@@ -236,6 +238,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          notes?: string
           questions_correct?: number
           questions_wrong?: number
           schedule_entry_id?: string
