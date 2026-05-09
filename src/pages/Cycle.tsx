@@ -148,6 +148,7 @@ export default function Cycle() {
 
           {/* Listagem do Ciclo */}
           <div className="col-span-1 lg:col-span-2">
+            <FixedCycleItems />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <h2 className="text-lg font-semibold text-center sm:text-left">Seu Ciclo (Ordem)</h2>
               <div className="flex items-center gap-2 self-center sm:self-auto">
