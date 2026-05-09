@@ -35,6 +35,7 @@ interface StudyContextType {
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
   advanceCycle: () => void;
+  regressCycle: () => void;
   setCompletedCyclesCount: (count: number) => void;
   addStudiedTime: (entryId: string, date: string, seconds: number) => void;
   getProgressForEntry: (entryId: string, date: string) => number;
