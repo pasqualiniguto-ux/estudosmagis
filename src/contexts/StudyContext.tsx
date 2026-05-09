@@ -495,6 +495,19 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     await saveSettings(nextIndex, newCompleted);
   }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
 
+  const regressCycle = useCallback(async () => {
+    if (!user || cycleEntries.length === 0) return;
+    const wrapping = activeCycleIndex === 0;
+    const prevIndex = wrapping ? cycleEntries.length - 1 : activeCycleIndex - 1;
+    let newCompleted = completedCyclesCount;
+    if (wrapping && completedCyclesCount > 0) {
+      newCompleted = completedCyclesCount - 1;
+      setCompletedCyclesCountState(newCompleted);
+    }
+    setActiveCycleIndex(prevIndex);
+    await saveSettings(prevIndex, newCompleted);
+  }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
+
   const setCompletedCyclesCount = useCallback(async (count: number) => {
     if (!user) return;
     setCompletedCyclesCountState(count);
