@@ -181,10 +181,15 @@ export default function Cycle() {
                   const plannedSec = entry.plannedMinutes * 60;
                   const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
 
+                  const entryLogs = studyLogs
+                    .filter(l => l.scheduleEntryId === entry.id && l.date === todayStr)
+                    .slice()
+                    .reverse();
+
                   return (
                     <div
                       key={entry.id}
-                      className={`relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border transition-all ${
+                      className={`relative flex flex-col gap-3 p-4 rounded-xl border transition-all ${
                         isActive ? 'bg-primary/5 border-primary shadow-sm scale-[1.01]' : 'bg-card border-border hover:bg-muted/10'
                       }`}
                       style={subject?.color ? { borderLeft: `6px solid ${subject.color}` } : undefined}
@@ -195,59 +200,101 @@ export default function Cycle() {
                         </div>
                       )}
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="flex items-center justify-center bg-muted text-muted-foreground font-medium text-xs rounded-full h-5 w-5">
-                            {index + 1}
-                          </span>
-                          <h3 className={`font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
-                            {subject?.name || '—'}
-                          </h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="flex items-center justify-center bg-muted text-muted-foreground font-medium text-xs rounded-full h-5 w-5">
+                              {index + 1}
+                            </span>
+                            <h3 className={`font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                              {subject?.name || '—'}
+                            </h3>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted-foreground mt-2">
+                            <span>Tempo: {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}</span>
+                            <Progress value={progress * 100} className="h-1.5 w-full sm:w-24" />
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted-foreground mt-2">
-                          <span>Tempo: {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}</span>
-                          <Progress value={progress * 100} className="h-1.5 w-full sm:w-24" />
+
+                        <div className="flex items-center gap-2 mt-2 sm:mt-0 justify-end">
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-primary" onClick={() => setTimerEntry(entry)} title="Cronômetro">
+                            <Play className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setManualEntry(entry); setManualHours(0); setManualMins(0); }} title="Tempo manual">
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setLogEntry(entry); resetLogForm(); }} title="Registrar estudo">
+                            <ClipboardList className="h-4 w-4" />
+                          </Button>
+
+                          {isActive && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2 gap-1 px-3"
+                                onClick={regressCycle}
+                                disabled={activeCycleIndex === 0 && completedCyclesCount === 0}
+                                title="Voltar ao bloco anterior"
+                              >
+                                <ArrowLeft className="h-4 w-4" /> Voltar
+                              </Button>
+                              {index === cycleEntries.length - 1 ? (
+                                <Button size="sm" className="gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
+                                  Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                                </Button>
+                              ) : (
+                                <Button size="sm" className="gap-1 px-3" onClick={advanceCycle}>
+                                  Avançar <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-1" onClick={() => removeCycleEntry(entry.id)} title="Remover bloco">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-2 sm:mt-0 justify-end">
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-primary" onClick={() => setTimerEntry(entry)} title="Cronômetro">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setManualEntry(entry); setManualHours(0); setManualMins(0); }} title="Tempo manual">
-                          <Clock className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setLogEntry(entry); resetLogForm(); }} title="Registrar estudo">
-                          <ClipboardList className="h-4 w-4" />
-                        </Button>
-                        
-                        {isActive && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="ml-2 gap-1 px-3"
-                              onClick={regressCycle}
-                              disabled={activeCycleIndex === 0 && completedCyclesCount === 0}
-                              title="Voltar ao bloco anterior"
-                            >
-                              <ArrowLeft className="h-4 w-4" /> Voltar
-                            </Button>
-                            {index === cycleEntries.length - 1 ? (
-                              <Button size="sm" className="gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
-                                Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                      {entryLogs.length > 0 && (
+                        <div className="border-t border-border/60 pt-2 mt-1 space-y-1">
+                          {entryLogs.map(log => (
+                            <div key={log.id} className="group flex items-start gap-2 text-xs text-muted-foreground">
+                              <BookOpen className="h-3 w-3 mt-0.5 shrink-0 opacity-70" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-foreground/80 truncate">
+                                    {log.topicName || 'Sem assunto'}
+                                  </span>
+                                  {(log.questionsCorrect > 0 || log.questionsWrong > 0) && (
+                                    <span className="text-[10px]">{log.questionsCorrect}✓ {log.questionsWrong}✗</span>
+                                  )}
+                                  {log.timeStudiedSeconds > 0 && (
+                                    <span className="text-[10px] opacity-70">· {fmtTime(log.timeStudiedSeconds)}</span>
+                                  )}
+                                </div>
+                                {log.notes && (
+                                  <p className="text-[11px] italic opacity-80 mt-0.5 whitespace-pre-wrap break-words">
+                                    “{log.notes}”
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title={log.notes ? 'Editar observação' : 'Adicionar observação'}
+                                onClick={() => {
+                                  setEditObsLog({ id: log.id, topicName: log.topicName, notes: log.notes || '' });
+                                  setObsText(log.notes || '');
+                                }}
+                              >
+                                {log.notes ? <Pencil className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
                               </Button>
-                            ) : (
-                              <Button size="sm" className="gap-1 px-3" onClick={advanceCycle}>
-                                Avançar <ArrowRight className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-1" onClick={() => removeCycleEntry(entry.id)} title="Remover bloco">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
