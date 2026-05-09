@@ -32,7 +32,11 @@ function fmtPlanned(minutes: number): string {
 import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
+
+  // Observation editor
+  const [editObsLog, setEditObsLog] = useState<{ id: string; topicName: string; notes: string } | null>(null);
+  const [obsText, setObsText] = useState('');
 
   const todayStr = getTodayStr();
 
