@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, RotateCw, RotateCcw } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
+import FixedCycleItems from '@/components/FixedCycleItems';
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
