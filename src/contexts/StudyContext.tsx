@@ -594,6 +594,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.questionsWrong !== undefined) dbUpdates.questions_wrong = updates.questionsWrong;
     if (updates.topicName !== undefined) dbUpdates.topic_name = updates.topicName;
     if (updates.date !== undefined) dbUpdates.date = updates.date;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+    if (updates.timeStudiedSeconds !== undefined) dbUpdates.time_studied_seconds = updates.timeStudiedSeconds;
     await supabase.from('study_logs').update(dbUpdates).eq('id', id);
     setStudyLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
   }, [user]);
