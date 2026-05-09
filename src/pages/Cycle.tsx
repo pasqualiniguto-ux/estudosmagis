@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, RotateCw, RotateCcw } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 import FixedCycleItems from '@/components/FixedCycleItems';
 
@@ -31,7 +31,7 @@ function fmtPlanned(minutes: number): string {
 import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, setCompletedCyclesCount } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
 
   const todayStr = getTodayStr();
 
@@ -217,15 +217,27 @@ export default function Cycle() {
                         </Button>
                         
                         {isActive && (
-                          index === cycleEntries.length - 1 ? (
-                            <Button size="sm" className="ml-2 gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
-                              Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-2 gap-1 px-3"
+                              onClick={regressCycle}
+                              disabled={activeCycleIndex === 0 && completedCyclesCount === 0}
+                              title="Voltar ao bloco anterior"
+                            >
+                              <ArrowLeft className="h-4 w-4" /> Voltar
                             </Button>
-                          ) : (
-                            <Button size="sm" className="ml-2 gap-1 px-3" onClick={advanceCycle}>
-                              Avançar <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          )
+                            {index === cycleEntries.length - 1 ? (
+                              <Button size="sm" className="gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
+                                Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button size="sm" className="gap-1 px-3" onClick={advanceCycle}>
+                                Avançar <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-1" onClick={() => removeCycleEntry(entry.id)} title="Remover bloco">
                           <Trash2 className="h-4 w-4" />

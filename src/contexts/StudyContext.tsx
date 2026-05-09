@@ -35,6 +35,7 @@ interface StudyContextType {
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
   advanceCycle: () => void;
+  regressCycle: () => void;
   setCompletedCyclesCount: (count: number) => void;
   addStudiedTime: (entryId: string, date: string, seconds: number) => void;
   getProgressForEntry: (entryId: string, date: string) => number;
@@ -495,6 +496,19 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     await saveSettings(nextIndex, newCompleted);
   }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
 
+  const regressCycle = useCallback(async () => {
+    if (!user || cycleEntries.length === 0) return;
+    const wrapping = activeCycleIndex === 0;
+    const prevIndex = wrapping ? cycleEntries.length - 1 : activeCycleIndex - 1;
+    let newCompleted = completedCyclesCount;
+    if (wrapping && completedCyclesCount > 0) {
+      newCompleted = completedCyclesCount - 1;
+      setCompletedCyclesCountState(newCompleted);
+    }
+    setActiveCycleIndex(prevIndex);
+    await saveSettings(prevIndex, newCompleted);
+  }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
+
   const setCompletedCyclesCount = useCallback(async (count: number) => {
     if (!user) return;
     setCompletedCyclesCountState(count);
@@ -704,7 +718,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       noteFont, noteSize, setNoteFont, setNoteSize,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
-      addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, setCompletedCyclesCount,
+      addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
       getProgressForEntry, getEntriesForDate,
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
