@@ -379,6 +379,36 @@ export default function Cycle() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Observation Dialog */}
+      <Dialog open={!!editObsLog} onOpenChange={o => { if (!o) setEditObsLog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Observação</DialogTitle>
+          </DialogHeader>
+          {editObsLog && (
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Assunto: <span className="text-foreground font-medium">{editObsLog.topicName || 'Sem assunto'}</span>
+              </p>
+              <Textarea
+                placeholder="Ex.: revisar súmulas vinculantes; questão 3 errei por desatenção..."
+                value={obsText}
+                onChange={e => setObsText(e.target.value)}
+                rows={5}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditObsLog(null)}>Cancelar</Button>
+                <Button onClick={() => {
+                  updateStudyLog(editObsLog.id, { notes: obsText.trim() });
+                  setEditObsLog(null);
+                }}>Salvar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
