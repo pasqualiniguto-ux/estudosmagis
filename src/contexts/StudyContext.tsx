@@ -39,6 +39,7 @@ interface StudyContextType {
   setCompletedCyclesCount: (count: number) => void;
   addStudiedTime: (entryId: string, date: string, seconds: number) => void;
   getProgressForEntry: (entryId: string, date: string) => number;
+  getTotalProgressForEntry: (entryId: string) => number;
   getEntriesForDate: (date: string) => ScheduleEntry[];
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
   updateStudyLog: (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => void;
