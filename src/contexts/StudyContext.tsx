@@ -39,6 +39,7 @@ interface StudyContextType {
   setCompletedCyclesCount: (count: number) => void;
   addStudiedTime: (entryId: string, date: string, seconds: number) => void;
   getProgressForEntry: (entryId: string, date: string) => number;
+  getTotalProgressForEntry: (entryId: string) => number;
   getEntriesForDate: (date: string) => ScheduleEntry[];
   addStudyLog: (log: Omit<StudyLog, 'id'>) => void;
   updateStudyLog: (id: string, updates: Partial<Omit<StudyLog, 'id'>>) => void;
@@ -559,6 +560,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     return p?.studiedSeconds || 0;
   }, [dailyProgress]);
 
+  const getTotalProgressForEntry = useCallback((entryId: string): number => {
+    return dailyProgress
+      .filter(dp => dp.entryId === entryId)
+      .reduce((sum, dp) => sum + (dp.studiedSeconds || 0), 0);
+  }, [dailyProgress]);
+
   const getEntriesForDate = useCallback((dateStr: string): ScheduleEntry[] => {
     const d = new Date(dateStr + 'T12:00:00');
     const ourDay = (d.getDay() + 6) % 7;
@@ -723,7 +730,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic,
       addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
-      getProgressForEntry, getEntriesForDate,
+      getProgressForEntry, getTotalProgressForEntry, getEntriesForDate,
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
       addNote, updateNote, removeNote,

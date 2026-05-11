@@ -32,7 +32,7 @@ function fmtPlanned(minutes: number): string {
 import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, getTotalProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
 
   // Observation editor
   const [editObsLog, setEditObsLog] = useState<{ id: string; topicName: string; notes: string } | null>(null);
@@ -177,12 +177,12 @@ export default function Cycle() {
                 {cycleEntries.map((entry, index) => {
                   const subject = subjects.find(s => s.id === entry.subjectId);
                   const isActive = index === activeCycleIndex;
-                  const studied = getProgressForEntry(entry.id, todayStr);
+                  const studied = getTotalProgressForEntry(entry.id);
                   const plannedSec = entry.plannedMinutes * 60;
                   const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
 
                   const entryLogs = studyLogs
-                    .filter(l => l.scheduleEntryId === entry.id && l.date === todayStr)
+                    .filter(l => l.scheduleEntryId === entry.id)
                     .slice()
                     .reverse();
 
