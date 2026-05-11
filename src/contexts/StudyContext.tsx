@@ -559,6 +559,12 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     return p?.studiedSeconds || 0;
   }, [dailyProgress]);
 
+  const getTotalProgressForEntry = useCallback((entryId: string): number => {
+    return dailyProgress
+      .filter(dp => dp.entryId === entryId)
+      .reduce((sum, dp) => sum + (dp.studiedSeconds || 0), 0);
+  }, [dailyProgress]);
+
   const getEntriesForDate = useCallback((dateStr: string): ScheduleEntry[] => {
     const d = new Date(dateStr + 'T12:00:00');
     const ourDay = (d.getDay() + 6) % 7;
