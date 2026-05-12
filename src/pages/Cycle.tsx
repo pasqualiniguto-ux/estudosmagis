@@ -291,6 +291,17 @@ export default function Cycle() {
                               >
                                 {log.notes ? <Pencil className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                title="Excluir registro"
+                                onClick={() => {
+                                  if (confirm('Excluir este registro de estudo?')) removeStudyLog(log.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           ))}
                         </div>
