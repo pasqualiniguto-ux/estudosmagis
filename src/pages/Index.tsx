@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
+import FixedTimeSlots from '@/components/FixedTimeSlots';
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const DAY_NAMES_FULL = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
@@ -238,6 +239,7 @@ export default function Index() {
                 <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
                   {DAY_NAMES[i]} {fmtDateShort(dateObj)}
                 </h3>
+                <FixedTimeSlots dayOfWeek={i} />
                 <div className="space-y-2 flex-1">
                   {dayEntries.map(entry => {
                     const subject = subjects.find(s => s.id === entry.subjectId);
