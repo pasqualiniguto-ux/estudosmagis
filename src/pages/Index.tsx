@@ -239,7 +239,7 @@ export default function Index() {
                 <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
                   {DAY_NAMES[i]} {fmtDateShort(dateObj)}
                 </h3>
-                <FixedTimeSlots dayOfWeek={i} />
+                
                 <div className="space-y-2 flex-1">
                   {dayEntries.map(entry => {
                     const subject = subjects.find(s => s.id === entry.subjectId);
