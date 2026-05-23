@@ -606,6 +606,147 @@ export default function Index() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Schedule Presets Dialog */}
+      <Dialog open={presetsOpen} onOpenChange={setPresetsOpen}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Planejamentos salvos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Salvar planejamento atual</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: Pré-edital, Pós-edital..."
+                  value={newPresetName}
+                  onChange={e => setNewPresetName(e.target.value)}
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter' && newPresetName.trim() && !savingPreset) {
+                      setSavingPreset(true);
+                      await saveSchedulePreset(newPresetName);
+                      setNewPresetName('');
+                      setSavingPreset(false);
+                    }
+                  }}
+                />
+                <Button
+                  disabled={!newPresetName.trim() || savingPreset}
+                  onClick={async () => {
+                    setSavingPreset(true);
+                    await saveSchedulePreset(newPresetName);
+                    setNewPresetName('');
+                    setSavingPreset(false);
+                  }}
+                >
+                  Salvar
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {scheduleEntries.length} matéria(s) no cronograma atual.
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Meus planejamentos</p>
+              {schedulePresets.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">Nenhum planejamento salvo ainda.</p>
+              ) : (
+                <div className="space-y-2">
+                  {schedulePresets.map(p => (
+                    <div key={p.id} className="border rounded-lg p-3 bg-card">
+                      {renamingId === p.id ? (
+                        <div className="flex gap-2 mb-2">
+                          <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} autoFocus />
+                          <Button size="sm" onClick={async () => {
+                            await renameSchedulePreset(p.id, renameValue);
+                            setRenamingId(null);
+                          }}><Check className="h-4 w-4" /></Button>
+                        </div>
+                      ) : (
+                        <div className="font-medium text-sm text-foreground mb-2">{p.name}</div>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="default" onClick={() => setApplyConfirm({ id: p.id, name: p.name })}>
+                          Aplicar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setRenamingId(p.id); setRenameValue(p.name); }}>
+                          <Pencil className="h-3 w-3 mr-1" /> Renomear
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm({ id: p.id, name: p.name })}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Apply preset confirmation */}
+      <Dialog open={!!applyConfirm} onOpenChange={o => { if (!o) setApplyConfirm(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aplicar planejamento</DialogTitle>
+          </DialogHeader>
+          {applyConfirm && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                Como deseja aplicar <span className="font-medium text-foreground">{applyConfirm.name}</span>?
+              </p>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={async () => {
+                const id = applyConfirm.id;
+                setApplyConfirm(null);
+                await applySchedulePreset(id, 'replace');
+                setPresetsOpen(false);
+              }}>
+                <div>
+                  <div className="font-medium text-sm">Substituir cronograma atual</div>
+                  <div className="text-xs text-muted-foreground">Remove o planejamento atual e usa o salvo</div>
+                </div>
+              </Button>
+              <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={async () => {
+                const id = applyConfirm.id;
+                setApplyConfirm(null);
+                await applySchedulePreset(id, 'merge');
+                setPresetsOpen(false);
+              }}>
+                <div>
+                  <div className="font-medium text-sm">Adicionar ao cronograma atual</div>
+                  <div className="text-xs text-muted-foreground">Mantém o que já existe e adiciona as matérias do planejamento salvo</div>
+                </div>
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setApplyConfirm(null)}>Cancelar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete preset confirmation */}
+      <Dialog open={!!deleteConfirm} onOpenChange={o => { if (!o) setDeleteConfirm(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir planejamento</DialogTitle>
+          </DialogHeader>
+          {deleteConfirm && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                Excluir <span className="font-medium text-foreground">{deleteConfirm.name}</span>? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+                <Button variant="destructive" className="flex-1" onClick={async () => {
+                  await deleteSchedulePreset(deleteConfirm.id);
+                  setDeleteConfirm(null);
+                }}>Excluir</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
