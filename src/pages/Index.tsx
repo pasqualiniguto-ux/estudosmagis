@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash } from 'lucide-react';
+import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash, Bookmark, Check, Pencil } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
 
 
@@ -55,7 +55,15 @@ function fmtDateShort(d: Date): string {
 }
 
 export default function Index() {
-  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule } = useStudy();
+  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule, schedulePresets, saveSchedulePreset, applySchedulePreset, renameSchedulePreset, deleteSchedulePreset, scheduleEntries } = useStudy();
+
+  const [presetsOpen, setPresetsOpen] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [applyConfirm, setApplyConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [savingPreset, setSavingPreset] = useState(false);
 
   const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -209,6 +217,9 @@ export default function Index() {
             {weekOffset !== 0 && (
               <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => setPresetsOpen(true)}>
+              <Bookmark className="h-4 w-4 mr-1" /> Planejamentos
+            </Button>
             <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
               <Trash className="h-4 w-4 mr-1" /> Limpar
             </Button>
