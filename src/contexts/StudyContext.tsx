@@ -238,7 +238,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
 
     // Now load everything
-    const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, notesRes, settingsRes] = await Promise.all([
+    const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, notesRes, settingsRes, presetsRes] = await Promise.all([
       supabase.from('subjects').select('*').eq('user_id', user.id),
       supabase.from('topics').select('*').eq('user_id', user.id),
       supabase.from('schedule_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
@@ -248,6 +248,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       supabase.from('exams').select('*').eq('user_id', user.id),
       supabase.from('notes').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('schedule_presets' as any).select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     ]);
 
     // Build subjects with their topics
@@ -322,6 +323,18 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
     setNotes((notesRes.data || []).map((n: any) => ({
       id: n.id,
+      subjectId: n.subject_id || undefined,
+      title: n.title,
+      content: n.content || '',
+      createdAt: n.created_at,
+      updatedAt: n.updated_at,
+    })));
+
+    setSchedulePresets(((presetsRes as any).data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      createdAt: p.created_at,
+    })));
       subjectId: n.subject_id || undefined,
       title: n.title,
       content: n.content || '',
