@@ -743,6 +743,79 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     await supabase.from('user_settings').upsert({ user_id: user.id, note_size: size });
   }, [user]);
 
+  const saveSchedulePreset = useCallback(async (name: string) => {
+    if (!user) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const { data: preset } = await (supabase.from('schedule_presets' as any).insert({
+      user_id: user.id, name: trimmed,
+    }).select('id, created_at').single() as any);
+    if (!preset) return;
+    if (scheduleEntries.length > 0) {
+      const rows = scheduleEntries.map(e => ({
+        user_id: user.id,
+        preset_id: preset.id,
+        subject_id: e.subjectId,
+        planned_minutes: e.plannedMinutes,
+        recurring: e.recurring,
+        day_of_week: e.dayOfWeek,
+        date: e.recurring ? null : (e.date || null),
+        notes: e.notes || '',
+      }));
+      await (supabase.from('schedule_preset_entries' as any).insert(rows) as any);
+    }
+    setSchedulePresets(prev => [{ id: preset.id, name: trimmed, createdAt: preset.created_at }, ...prev]);
+  }, [user, scheduleEntries]);
+
+  const applySchedulePreset = useCallback(async (presetId: string, mode: 'replace' | 'merge') => {
+    if (!user) return;
+    const { data: rows } = await (supabase.from('schedule_preset_entries' as any)
+      .select('*').eq('preset_id', presetId).eq('user_id', user.id) as any);
+    if (!rows) return;
+    if (mode === 'replace') {
+      await supabase.from('schedule_entries').delete().eq('user_id', user.id);
+      setScheduleEntries([]);
+    }
+    if (rows.length === 0) return;
+    const insertRows = rows.map((r: any) => ({
+      user_id: user.id,
+      subject_id: r.subject_id,
+      planned_minutes: r.planned_minutes,
+      recurring: r.recurring,
+      day_of_week: r.day_of_week,
+      date: r.recurring ? null : (r.date || null),
+      notes: r.notes || '',
+    }));
+    const { data: inserted } = await supabase.from('schedule_entries').insert(insertRows).select('*');
+    if (inserted) {
+      const newEntries: ScheduleEntry[] = inserted.map((e: any) => ({
+        id: e.id,
+        subjectId: e.subject_id,
+        plannedMinutes: e.planned_minutes,
+        recurring: e.recurring,
+        dayOfWeek: e.day_of_week,
+        date: e.date || undefined,
+        notes: e.notes || '',
+      }));
+      setScheduleEntries(prev => mode === 'replace' ? newEntries : [...prev, ...newEntries]);
+    }
+  }, [user]);
+
+  const renameSchedulePreset = useCallback(async (presetId: string, name: string) => {
+    if (!user) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    await (supabase.from('schedule_presets' as any).update({ name: trimmed }).eq('id', presetId) as any);
+    setSchedulePresets(prev => prev.map(p => p.id === presetId ? { ...p, name: trimmed } : p));
+  }, [user]);
+
+  const deleteSchedulePreset = useCallback(async (presetId: string) => {
+    if (!user) return;
+    await (supabase.from('schedule_presets' as any).delete().eq('id', presetId) as any);
+    setSchedulePresets(prev => prev.filter(p => p.id !== presetId));
+  }, [user]);
+
+
   return (
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
@@ -754,6 +827,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,
       addNote, updateNote, removeNote,
+      schedulePresets, saveSchedulePreset, applySchedulePreset, renameSchedulePreset, deleteSchedulePreset,
     }}>
       {children}
     </StudyContext.Provider>
