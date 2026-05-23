@@ -228,7 +228,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     const [subjectsRes, topicsRes, scheduleRes, cycleRes, progressRes, logsRes, examsRes, notesRes, settingsRes] = await Promise.all([
       supabase.from('subjects').select('*').eq('user_id', user.id),
       supabase.from('topics').select('*').eq('user_id', user.id),
-      supabase.from('schedule_entries').select('*').eq('user_id', user.id),
+      supabase.from('schedule_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
       supabase.from('cycle_entries').select('*').eq('user_id', user.id).order('sort_order'),
       supabase.from('daily_progress').select('*').eq('user_id', user.id),
       supabase.from('study_logs').select('*').eq('user_id', user.id),
