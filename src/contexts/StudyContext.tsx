@@ -335,12 +335,6 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       name: p.name,
       createdAt: p.created_at,
     })));
-      subjectId: n.subject_id || undefined,
-      title: n.title,
-      content: n.content || '',
-      createdAt: n.created_at,
-      updatedAt: n.updated_at,
-    })));
 
     if (settingsRes.data) {
       setActiveCycleIndex(settingsRes.data.active_cycle_index);
