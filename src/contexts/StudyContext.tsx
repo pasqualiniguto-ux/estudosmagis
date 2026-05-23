@@ -10,6 +10,12 @@ interface TopicStats {
   percentage: number;
 }
 
+export interface SchedulePreset {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 interface StudyContextType {
   subjects: Subject[];
   scheduleEntries: ScheduleEntry[];
@@ -56,6 +62,11 @@ interface StudyContextType {
   addNote: (subjectId?: string) => Promise<string | undefined>;
   updateNote: (id: string, updates: Partial<Note>) => void;
   removeNote: (id: string) => void;
+  schedulePresets: SchedulePreset[];
+  saveSchedulePreset: (name: string) => Promise<void>;
+  applySchedulePreset: (presetId: string, mode: 'replace' | 'merge') => Promise<void>;
+  renameSchedulePreset: (presetId: string, name: string) => Promise<void>;
+  deleteSchedulePreset: (presetId: string) => Promise<void>;
 }
 
 const StudyContext = createContext<StudyContextType | null>(null);
@@ -73,6 +84,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [noteFont, setNoteFontState] = useState('sans');
   const [noteSize, setNoteSizeState] = useState('md');
+  const [schedulePresets, setSchedulePresets] = useState<SchedulePreset[]>([]);
   const [loading, setLoading] = useState(true);
   const migrationDone = useRef(false);
 
@@ -88,6 +100,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       setStudyLogs([]);
       setExams([]);
       setNotes([]);
+      setSchedulePresets([]);
       setNoteFontState('sans');
       setNoteSizeState('md');
       setLoading(false);
