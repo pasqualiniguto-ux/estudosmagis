@@ -205,6 +205,74 @@ export type Database = {
           },
         ]
       }
+      schedule_preset_entries: {
+        Row: {
+          created_at: string
+          date: string | null
+          day_of_week: number
+          id: string
+          notes: string
+          planned_minutes: number
+          preset_id: string
+          recurring: boolean
+          subject_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          day_of_week?: number
+          id?: string
+          notes?: string
+          planned_minutes?: number
+          preset_id: string
+          recurring?: boolean
+          subject_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          day_of_week?: number
+          id?: string
+          notes?: string
+          planned_minutes?: number
+          preset_id?: string
+          recurring?: boolean
+          subject_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_preset_entries_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_presets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_presets: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_logs: {
         Row: {
           created_at: string
