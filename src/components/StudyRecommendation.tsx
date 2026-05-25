@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStudy } from '@/contexts/StudyContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -7,6 +7,10 @@ import { Sparkles, AlertTriangle, TrendingDown, BookOpen, Clock, CalendarCheck, 
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+
+const STORAGE_KEY = 'studyRecommendationEnabled';
 
 interface TopicRecommendation {
   subjectName: string;
@@ -51,6 +55,16 @@ export default function StudyRecommendation() {
   const { subjects, studyLogs, exams, getTopicStats, getSubjectStats } = useStudy();
   const [open, setOpen] = useState(false);
   const [selectedExamId, setSelectedExamId] = useState<string>('all');
+  const [enabled, setEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(STORAGE_KEY) !== 'false';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, enabled ? 'true' : 'false');
+  }, [enabled]);
+
+
 
   const upcomingExams = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -314,6 +328,21 @@ export default function StudyRecommendation() {
     return parts.join(' ');
   }, [hasData, overallStats]);
 
+  if (!enabled) {
+    return (
+      <Button
+        onClick={() => setEnabled(true)}
+        className="gap-2 text-muted-foreground"
+        variant="ghost"
+        size="sm"
+        title="Ativar sugestões de estudo"
+      >
+        <Sparkles className="h-4 w-4" />
+        Ativar sugestões
+      </Button>
+    );
+  }
+
   return (
     <>
       <Button onClick={() => setOpen(true)} className="gap-2" variant="outline">
@@ -522,6 +551,22 @@ export default function StudyRecommendation() {
               </div>
             </div>
           )}
+
+          <Separator />
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <div className="space-y-0.5">
+              <Label htmlFor="toggle-suggestions" className="text-sm">Mostrar sugestões de estudo</Label>
+              <p className="text-xs text-muted-foreground">Oculta o botão de sugestões no dashboard.</p>
+            </div>
+            <Switch
+              id="toggle-suggestions"
+              checked={enabled}
+              onCheckedChange={(v) => {
+                setEnabled(v);
+                if (!v) setOpen(false);
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>
