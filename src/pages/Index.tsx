@@ -315,7 +315,7 @@ export default function Index() {
                             </div>
                           );
                         })()}
-                        {(() => {
+                        {recommendationsEnabled && (() => {
                           const subj = subjects.find(s => s.id === entry.subjectId);
                           if (!subj || subj.topics.length === 0) return null;
                           const entryLogTopicIds = new Set(studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName).map(l => l.topicId));
