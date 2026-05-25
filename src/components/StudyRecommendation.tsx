@@ -328,6 +328,21 @@ export default function StudyRecommendation() {
     return parts.join(' ');
   }, [hasData, overallStats]);
 
+  if (!enabled) {
+    return (
+      <Button
+        onClick={() => setEnabled(true)}
+        className="gap-2 text-muted-foreground"
+        variant="ghost"
+        size="sm"
+        title="Ativar sugestões de estudo"
+      >
+        <Sparkles className="h-4 w-4" />
+        Ativar sugestões
+      </Button>
+    );
+  }
+
   return (
     <>
       <Button onClick={() => setOpen(true)} className="gap-2" variant="outline">
