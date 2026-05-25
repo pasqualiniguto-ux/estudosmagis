@@ -57,6 +57,7 @@ function fmtDateShort(d: Date): string {
 
 export default function Index() {
   const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule, schedulePresets, saveSchedulePreset, applySchedulePreset, renameSchedulePreset, deleteSchedulePreset, scheduleEntries } = useStudy();
+  const recommendationsEnabled = useStudyRecommendationEnabled();
 
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
