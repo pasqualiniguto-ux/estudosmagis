@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash, Bookmark, Check, Pencil } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
+import { useStudyRecommendationEnabled } from '@/hooks/useStudyRecommendationEnabled';
 
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -56,6 +57,7 @@ function fmtDateShort(d: Date): string {
 
 export default function Index() {
   const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule, schedulePresets, saveSchedulePreset, applySchedulePreset, renameSchedulePreset, deleteSchedulePreset, scheduleEntries } = useStudy();
+  const recommendationsEnabled = useStudyRecommendationEnabled();
 
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
@@ -313,7 +315,7 @@ export default function Index() {
                             </div>
                           );
                         })()}
-                        {(() => {
+                        {recommendationsEnabled && (() => {
                           const subj = subjects.find(s => s.id === entry.subjectId);
                           if (!subj || subj.topics.length === 0) return null;
                           const entryLogTopicIds = new Set(studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName).map(l => l.topicId));

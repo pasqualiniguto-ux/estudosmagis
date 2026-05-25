@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-const STORAGE_KEY = 'studyRecommendationEnabled';
+import { STUDY_RECOMMENDATION_STORAGE_KEY as STORAGE_KEY, setStudyRecommendationEnabled } from '@/hooks/useStudyRecommendationEnabled';
 
 interface TopicRecommendation {
   subjectName: string;
@@ -61,7 +61,7 @@ export default function StudyRecommendation() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, enabled ? 'true' : 'false');
+    setStudyRecommendationEnabled(enabled);
   }, [enabled]);
 
 
