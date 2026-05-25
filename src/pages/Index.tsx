@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash, Bookmark, Check, Pencil } from 'lucide-react';
 import StudyStreak from '@/components/StudyStreak';
+import { useStudyRecommendationEnabled } from '@/hooks/useStudyRecommendationEnabled';
 
 
 const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
