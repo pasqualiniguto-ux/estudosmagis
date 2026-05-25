@@ -55,6 +55,16 @@ export default function StudyRecommendation() {
   const { subjects, studyLogs, exams, getTopicStats, getSubjectStats } = useStudy();
   const [open, setOpen] = useState(false);
   const [selectedExamId, setSelectedExamId] = useState<string>('all');
+  const [enabled, setEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(STORAGE_KEY) !== 'false';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, enabled ? 'true' : 'false');
+  }, [enabled]);
+
+
 
   const upcomingExams = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
