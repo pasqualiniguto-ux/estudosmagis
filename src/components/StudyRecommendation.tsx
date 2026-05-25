@@ -61,7 +61,7 @@ export default function StudyRecommendation() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, enabled ? 'true' : 'false');
+    setStudyRecommendationEnabled(enabled);
   }, [enabled]);
 
 
