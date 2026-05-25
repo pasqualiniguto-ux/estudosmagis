@@ -551,6 +551,22 @@ export default function StudyRecommendation() {
               </div>
             </div>
           )}
+
+          <Separator />
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <div className="space-y-0.5">
+              <Label htmlFor="toggle-suggestions" className="text-sm">Mostrar sugestões de estudo</Label>
+              <p className="text-xs text-muted-foreground">Oculta o botão de sugestões no dashboard.</p>
+            </div>
+            <Switch
+              id="toggle-suggestions"
+              checked={enabled}
+              onCheckedChange={(v) => {
+                setEnabled(v);
+                if (!v) setOpen(false);
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </>
