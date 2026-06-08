@@ -365,6 +365,7 @@ export type Database = {
           id: string
           name: string
           pdf_url: string | null
+          sort_order: number
           subject_id: string
           user_id: string
           web_url: string | null
@@ -374,6 +375,7 @@ export type Database = {
           id?: string
           name: string
           pdf_url?: string | null
+          sort_order?: number
           subject_id: string
           user_id: string
           web_url?: string | null
@@ -383,6 +385,7 @@ export type Database = {
           id?: string
           name?: string
           pdf_url?: string | null
+          sort_order?: number
           subject_id?: string
           user_id?: string
           web_url?: string | null
