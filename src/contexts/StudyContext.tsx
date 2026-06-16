@@ -66,6 +66,7 @@ interface StudyContextType {
   schedulePresets: SchedulePreset[];
   saveSchedulePreset: (name: string) => Promise<void>;
   applySchedulePreset: (presetId: string, mode: 'replace' | 'merge') => Promise<void>;
+  saveSchedulePreset: (name: string) => Promise<string | null>;
   renameSchedulePreset: (presetId: string, name: string) => Promise<void>;
   deleteSchedulePreset: (presetId: string) => Promise<void>;
 }
