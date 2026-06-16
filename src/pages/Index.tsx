@@ -737,6 +737,7 @@ export default function Index() {
                 const id = applyConfirm.id;
                 setApplyConfirm(null);
                 await applySchedulePreset(id, 'replace');
+                setActivePresetId(id);
                 setPresetsOpen(false);
               }}>
                 <div>
@@ -748,6 +749,7 @@ export default function Index() {
                 const id = applyConfirm.id;
                 setApplyConfirm(null);
                 await applySchedulePreset(id, 'merge');
+                setActivePresetId(null);
                 setPresetsOpen(false);
               }}>
                 <div>
