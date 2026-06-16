@@ -695,7 +695,12 @@ export default function Index() {
                           }}><Check className="h-4 w-4" /></Button>
                         </div>
                       ) : (
-                        <div className="font-medium text-sm text-foreground mb-2">{p.name}</div>
+                        <div className="font-medium text-sm text-foreground mb-2 flex items-center gap-2">
+                          <span>{p.name}</span>
+                          {activePresetId === p.id && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">Atual</span>
+                          )}
+                        </div>
                       )}
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="default" onClick={() => setApplyConfirm({ id: p.id, name: p.name })}>
