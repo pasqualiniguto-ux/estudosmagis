@@ -66,6 +66,24 @@ export default function Index() {
   const [applyConfirm, setApplyConfirm] = useState<{ id: string; name: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [savingPreset, setSavingPreset] = useState(false);
+  const ACTIVE_PRESET_KEY = 'activeSchedulePresetId';
+  const [activePresetId, setActivePresetIdState] = useState<string | null>(() => {
+    try { return localStorage.getItem(ACTIVE_PRESET_KEY); } catch { return null; }
+  });
+  const setActivePresetId = (id: string | null) => {
+    setActivePresetIdState(id);
+    try {
+      if (id) localStorage.setItem(ACTIVE_PRESET_KEY, id);
+      else localStorage.removeItem(ACTIVE_PRESET_KEY);
+    } catch {}
+  };
+  // Clear active id if the preset no longer exists
+  useEffect(() => {
+    if (activePresetId && !schedulePresets.some(p => p.id === activePresetId)) {
+      setActivePresetId(null);
+    }
+  }, [schedulePresets, activePresetId]);
+  const activePreset = schedulePresets.find(p => p.id === activePresetId) || null;
 
   const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
