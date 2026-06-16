@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppNavigation from '@/components/AppNavigation';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
@@ -66,6 +66,24 @@ export default function Index() {
   const [applyConfirm, setApplyConfirm] = useState<{ id: string; name: string } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [savingPreset, setSavingPreset] = useState(false);
+  const ACTIVE_PRESET_KEY = 'activeSchedulePresetId';
+  const [activePresetId, setActivePresetIdState] = useState<string | null>(() => {
+    try { return localStorage.getItem(ACTIVE_PRESET_KEY); } catch { return null; }
+  });
+  const setActivePresetId = (id: string | null) => {
+    setActivePresetIdState(id);
+    try {
+      if (id) localStorage.setItem(ACTIVE_PRESET_KEY, id);
+      else localStorage.removeItem(ACTIVE_PRESET_KEY);
+    } catch {}
+  };
+  // Clear active id if the preset no longer exists
+  useEffect(() => {
+    if (activePresetId && !schedulePresets.some(p => p.id === activePresetId)) {
+      setActivePresetId(null);
+    }
+  }, [schedulePresets, activePresetId]);
+  const activePreset = schedulePresets.find(p => p.id === activePresetId) || null;
 
   const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -106,6 +124,7 @@ export default function Index() {
 
   const handleClearSchedule = async () => {
     await clearSchedule();
+    setActivePresetId(null);
     setClearScheduleConfirm(false);
   };
 
@@ -220,7 +239,15 @@ export default function Index() {
               <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
             )}
             <Button variant="outline" size="sm" onClick={() => setPresetsOpen(true)}>
-              <Bookmark className="h-4 w-4 mr-1" /> Planejamentos
+              <Bookmark className="h-4 w-4 mr-1" />
+              {activePreset ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-muted-foreground hidden sm:inline">Planejamento:</span>
+                  <span className="font-medium max-w-[160px] truncate">{activePreset.name}</span>
+                </span>
+              ) : (
+                <>Planejamentos</>
+              )}
             </Button>
             <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
               <Trash className="h-4 w-4 mr-1" /> Limpar
@@ -626,7 +653,8 @@ export default function Index() {
                   onKeyDown={async e => {
                     if (e.key === 'Enter' && newPresetName.trim() && !savingPreset) {
                       setSavingPreset(true);
-                      await saveSchedulePreset(newPresetName);
+                      const newId = await saveSchedulePreset(newPresetName);
+                      if (newId) setActivePresetId(newId);
                       setNewPresetName('');
                       setSavingPreset(false);
                     }
@@ -636,7 +664,8 @@ export default function Index() {
                   disabled={!newPresetName.trim() || savingPreset}
                   onClick={async () => {
                     setSavingPreset(true);
-                    await saveSchedulePreset(newPresetName);
+                    const newId = await saveSchedulePreset(newPresetName);
+                    if (newId) setActivePresetId(newId);
                     setNewPresetName('');
                     setSavingPreset(false);
                   }}
@@ -666,7 +695,12 @@ export default function Index() {
                           }}><Check className="h-4 w-4" /></Button>
                         </div>
                       ) : (
-                        <div className="font-medium text-sm text-foreground mb-2">{p.name}</div>
+                        <div className="font-medium text-sm text-foreground mb-2 flex items-center gap-2">
+                          <span>{p.name}</span>
+                          {activePresetId === p.id && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">Atual</span>
+                          )}
+                        </div>
                       )}
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="default" onClick={() => setApplyConfirm({ id: p.id, name: p.name })}>
@@ -703,6 +737,7 @@ export default function Index() {
                 const id = applyConfirm.id;
                 setApplyConfirm(null);
                 await applySchedulePreset(id, 'replace');
+                setActivePresetId(id);
                 setPresetsOpen(false);
               }}>
                 <div>
@@ -714,6 +749,7 @@ export default function Index() {
                 const id = applyConfirm.id;
                 setApplyConfirm(null);
                 await applySchedulePreset(id, 'merge');
+                setActivePresetId(null);
                 setPresetsOpen(false);
               }}>
                 <div>

@@ -64,7 +64,7 @@ interface StudyContextType {
   updateNote: (id: string, updates: Partial<Note>) => void;
   removeNote: (id: string) => void;
   schedulePresets: SchedulePreset[];
-  saveSchedulePreset: (name: string) => Promise<void>;
+  saveSchedulePreset: (name: string) => Promise<string | null>;
   applySchedulePreset: (presetId: string, mode: 'replace' | 'merge') => Promise<void>;
   renameSchedulePreset: (presetId: string, name: string) => Promise<void>;
   deleteSchedulePreset: (presetId: string) => Promise<void>;
@@ -765,14 +765,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     await supabase.from('user_settings').upsert({ user_id: user.id, note_size: size });
   }, [user]);
 
-  const saveSchedulePreset = useCallback(async (name: string) => {
-    if (!user) return;
+  const saveSchedulePreset = useCallback(async (name: string): Promise<string | null> => {
+    if (!user) return null;
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) return null;
     const { data: preset } = await (supabase.from('schedule_presets' as any).insert({
       user_id: user.id, name: trimmed,
     }).select('id, created_at').single() as any);
-    if (!preset) return;
+    if (!preset) return null;
     if (scheduleEntries.length > 0) {
       const rows = scheduleEntries.map(e => ({
         user_id: user.id,
@@ -787,6 +787,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       await (supabase.from('schedule_preset_entries' as any).insert(rows) as any);
     }
     setSchedulePresets(prev => [{ id: preset.id, name: trimmed, createdAt: preset.created_at }, ...prev]);
+    return preset.id as string;
   }, [user, scheduleEntries]);
 
   const applySchedulePreset = useCallback(async (presetId: string, mode: 'replace' | 'merge') => {
