@@ -239,7 +239,15 @@ export default function Index() {
               <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
             )}
             <Button variant="outline" size="sm" onClick={() => setPresetsOpen(true)}>
-              <Bookmark className="h-4 w-4 mr-1" /> Planejamentos
+              <Bookmark className="h-4 w-4 mr-1" />
+              {activePreset ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-muted-foreground hidden sm:inline">Planejamento:</span>
+                  <span className="font-medium max-w-[160px] truncate">{activePreset.name}</span>
+                </span>
+              ) : (
+                <>Planejamentos</>
+              )}
             </Button>
             <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
               <Trash className="h-4 w-4 mr-1" /> Limpar
