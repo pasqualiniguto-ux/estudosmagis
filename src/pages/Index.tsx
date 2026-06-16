@@ -124,6 +124,7 @@ export default function Index() {
 
   const handleClearSchedule = async () => {
     await clearSchedule();
+    setActivePresetId(null);
     setClearScheduleConfirm(false);
   };
 
