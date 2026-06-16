@@ -653,7 +653,8 @@ export default function Index() {
                   onKeyDown={async e => {
                     if (e.key === 'Enter' && newPresetName.trim() && !savingPreset) {
                       setSavingPreset(true);
-                      await saveSchedulePreset(newPresetName);
+                      const newId = await saveSchedulePreset(newPresetName);
+                      if (newId) setActivePresetId(newId);
                       setNewPresetName('');
                       setSavingPreset(false);
                     }
@@ -663,7 +664,8 @@ export default function Index() {
                   disabled={!newPresetName.trim() || savingPreset}
                   onClick={async () => {
                     setSavingPreset(true);
-                    await saveSchedulePreset(newPresetName);
+                    const newId = await saveSchedulePreset(newPresetName);
+                    if (newId) setActivePresetId(newId);
                     setNewPresetName('');
                     setSavingPreset(false);
                   }}
