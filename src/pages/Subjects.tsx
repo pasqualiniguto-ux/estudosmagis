@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, ArrowUp, ArrowDown, LayoutGrid, List } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +39,13 @@ export default function Subjects() {
   const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string, category: 'specific' | 'general' } | null>(null);
 
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'specific' | 'general'>('all');
+  const [topicsView, setTopicsView] = useState<'list' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return (localStorage.getItem('subjects_topics_view') as 'list' | 'grid') || 'list';
+  });
+  React.useEffect(() => {
+    localStorage.setItem('subjects_topics_view', topicsView);
+  }, [topicsView]);
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
@@ -214,12 +221,30 @@ export default function Subjects() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
-      <main className="container py-6 max-w-2xl">
-        <div className="flex items-center justify-between mb-4">
+      <main className="container py-6 max-w-5xl">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <h1 className="text-2xl font-bold text-foreground">Matérias</h1>
-          <Button size="sm" onClick={() => setShowAddSubject(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova matéria
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg" title="Modo de visualização dos assuntos">
+              <button
+                onClick={() => setTopicsView('list')}
+                className={`p-1.5 rounded-md transition-colors ${topicsView === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Lista (1 coluna)"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTopicsView('grid')}
+                className={`p-1.5 rounded-md transition-colors ${topicsView === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Grade (2 colunas)"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+            <Button size="sm" onClick={() => setShowAddSubject(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nova matéria
+            </Button>
+          </div>
         </div>
 
         {subjects.length > 0 && (
@@ -339,7 +364,7 @@ export default function Subjects() {
                   </Button>
                 </div>
                 {isExpanded && (
-                  <div className="border-t border-border">
+                  <div className={topicsView === 'grid' ? 'border-t border-border grid grid-cols-1 lg:grid-cols-2' : 'border-t border-border'}>
                     {subject.topics.length === 0 && (
                       <p className="text-xs text-muted-foreground p-3">Nenhum assunto cadastrado.</p>
                     )}
