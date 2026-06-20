@@ -383,27 +383,8 @@ export default function Subjects() {
                         : null;
                       return (
                         <div key={topic.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors">
-                          <div className="flex flex-col -my-1">
-                            <button
-                              type="button"
-                              onClick={() => reorderTopic(subject.id, topic.id, 'up')}
-                              disabled={topicIdx === 0}
-                              className="h-3.5 w-4 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed"
-                              title="Mover para cima"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => reorderTopic(subject.id, topic.id, 'down')}
-                              disabled={topicIdx === subject.topics.length - 1}
-                              className="h-3.5 w-4 flex items-center justify-center text-muted-foreground hover:text-primary disabled:opacity-20 disabled:cursor-not-allowed"
-                              title="Mover para baixo"
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </button>
-                          </div>
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
+
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {lastDateLabel ? (
                               <span className="flex items-center gap-1 text-muted-foreground/70">
