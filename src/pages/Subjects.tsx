@@ -364,7 +364,7 @@ export default function Subjects() {
                   </Button>
                 </div>
                 {isExpanded && (
-                  <div className="border-t border-border">
+                  <div className={topicsView === 'grid' ? 'border-t border-border grid grid-cols-1 lg:grid-cols-2' : 'border-t border-border'}>
                     {subject.topics.length === 0 && (
                       <p className="text-xs text-muted-foreground p-3">Nenhum assunto cadastrado.</p>
                     )}
