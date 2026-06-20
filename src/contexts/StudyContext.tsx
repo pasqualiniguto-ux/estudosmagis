@@ -382,10 +382,19 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
     if (!user) return;
-    const currentCount = subjects.find(s => s.id === subjectId)?.topics.length ?? 0;
+    // Consultar o maior sort_order atual no banco para evitar duplicatas quando
+    // vários assuntos são adicionados em sequência (loop sem await entre estados).
+    const { data: maxRow } = await supabase
+      .from('topics')
+      .select('sort_order')
+      .eq('subject_id', subjectId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextOrder = ((maxRow as any)?.sort_order ?? -1) + 1;
     const { data } = await supabase.from('topics').insert({
       subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null,
-      sort_order: currentCount,
+      sort_order: nextOrder,
     } as any).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
@@ -394,7 +403,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           : s
       ));
     }
-  }, [user, subjects]);
+  }, [user]);
 
   const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
     if (!user) return;
