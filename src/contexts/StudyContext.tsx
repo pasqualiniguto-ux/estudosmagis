@@ -431,22 +431,30 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const reorderTopic = useCallback(async (subjectId: string, topicId: string, direction: 'up' | 'down') => {
     if (!user) return;
-    let updates: { id: string; order: number }[] = [];
-    setSubjects(prev => prev.map(s => {
-      if (s.id !== subjectId) return s;
-      const idx = s.topics.findIndex(t => t.id === topicId);
-      if (idx === -1) return s;
-      const target = direction === 'up' ? idx - 1 : idx + 1;
-      if (target < 0 || target >= s.topics.length) return s;
-      const newTopics = [...s.topics];
-      [newTopics[idx], newTopics[target]] = [newTopics[target], newTopics[idx]];
-      updates = newTopics.map((t, i) => ({ id: t.id, order: i }));
-      return { ...s, topics: newTopics };
-    }));
-    await Promise.all(updates.map(u =>
-      supabase.from('topics').update({ sort_order: u.order } as any).eq('id', u.id)
-    ));
-  }, [user]);
+    // Pega snapshot fora do updater para evitar problemas com strict mode (double-invoke).
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const idx = subject.topics.findIndex(t => t.id === topicId);
+    if (idx === -1) return;
+    const target = direction === 'up' ? idx - 1 : idx + 1;
+    if (target < 0 || target >= subject.topics.length) return;
+
+    const newTopics = [...subject.topics];
+    [newTopics[idx], newTopics[target]] = [newTopics[target], newTopics[idx]];
+
+    // Atualização otimista na UI
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, topics: newTopics } : s));
+
+    // Persiste reescrevendo os sort_orders sequencialmente para garantir entrega.
+    // Sequencial em vez de Promise.all para evitar perdas em matérias com muitos assuntos.
+    try {
+      for (let i = 0; i < newTopics.length; i++) {
+        await supabase.from('topics').update({ sort_order: i } as any).eq('id', newTopics[i].id);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar ordem dos assuntos:', e);
+    }
+  }, [user, subjects]);
 
   const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
     if (!user) return;
