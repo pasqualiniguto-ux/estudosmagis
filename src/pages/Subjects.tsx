@@ -39,6 +39,13 @@ export default function Subjects() {
   const [editSubjectState, setEditSubjectState] = useState<{ id: string, name: string, color: string, category: 'specific' | 'general' } | null>(null);
 
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'specific' | 'general'>('all');
+  const [topicsView, setTopicsView] = useState<'list' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return (localStorage.getItem('subjects_topics_view') as 'list' | 'grid') || 'list';
+  });
+  React.useEffect(() => {
+    localStorage.setItem('subjects_topics_view', topicsView);
+  }, [topicsView]);
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
