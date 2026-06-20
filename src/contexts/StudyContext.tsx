@@ -382,10 +382,19 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
     if (!user) return;
-    const currentCount = subjects.find(s => s.id === subjectId)?.topics.length ?? 0;
+    // Consultar o maior sort_order atual no banco para evitar duplicatas quando
+    // vários assuntos são adicionados em sequência (loop sem await entre estados).
+    const { data: maxRow } = await supabase
+      .from('topics')
+      .select('sort_order')
+      .eq('subject_id', subjectId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextOrder = ((maxRow as any)?.sort_order ?? -1) + 1;
     const { data } = await supabase.from('topics').insert({
       subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null,
-      sort_order: currentCount,
+      sort_order: nextOrder,
     } as any).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
@@ -394,7 +403,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
           : s
       ));
     }
-  }, [user, subjects]);
+  }, [user]);
 
   const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
     if (!user) return;
@@ -422,22 +431,30 @@ export function StudyProvider({ children }: { children: ReactNode }) {
 
   const reorderTopic = useCallback(async (subjectId: string, topicId: string, direction: 'up' | 'down') => {
     if (!user) return;
-    let updates: { id: string; order: number }[] = [];
-    setSubjects(prev => prev.map(s => {
-      if (s.id !== subjectId) return s;
-      const idx = s.topics.findIndex(t => t.id === topicId);
-      if (idx === -1) return s;
-      const target = direction === 'up' ? idx - 1 : idx + 1;
-      if (target < 0 || target >= s.topics.length) return s;
-      const newTopics = [...s.topics];
-      [newTopics[idx], newTopics[target]] = [newTopics[target], newTopics[idx]];
-      updates = newTopics.map((t, i) => ({ id: t.id, order: i }));
-      return { ...s, topics: newTopics };
-    }));
-    await Promise.all(updates.map(u =>
-      supabase.from('topics').update({ sort_order: u.order } as any).eq('id', u.id)
-    ));
-  }, [user]);
+    // Pega snapshot fora do updater para evitar problemas com strict mode (double-invoke).
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const idx = subject.topics.findIndex(t => t.id === topicId);
+    if (idx === -1) return;
+    const target = direction === 'up' ? idx - 1 : idx + 1;
+    if (target < 0 || target >= subject.topics.length) return;
+
+    const newTopics = [...subject.topics];
+    [newTopics[idx], newTopics[target]] = [newTopics[target], newTopics[idx]];
+
+    // Atualização otimista na UI
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, topics: newTopics } : s));
+
+    // Persiste reescrevendo os sort_orders sequencialmente para garantir entrega.
+    // Sequencial em vez de Promise.all para evitar perdas em matérias com muitos assuntos.
+    try {
+      for (let i = 0; i < newTopics.length; i++) {
+        await supabase.from('topics').update({ sort_order: i } as any).eq('id', newTopics[i].id);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar ordem dos assuntos:', e);
+    }
+  }, [user, subjects]);
 
   const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
     if (!user) return;
