@@ -221,12 +221,30 @@ export default function Subjects() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
-      <main className="container py-6 max-w-2xl">
-        <div className="flex items-center justify-between mb-4">
+      <main className="container py-6 max-w-5xl">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <h1 className="text-2xl font-bold text-foreground">Matérias</h1>
-          <Button size="sm" onClick={() => setShowAddSubject(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova matéria
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg" title="Modo de visualização dos assuntos">
+              <button
+                onClick={() => setTopicsView('list')}
+                className={`p-1.5 rounded-md transition-colors ${topicsView === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Lista (1 coluna)"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTopicsView('grid')}
+                className={`p-1.5 rounded-md transition-colors ${topicsView === 'grid' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Grade (2 colunas)"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
+            <Button size="sm" onClick={() => setShowAddSubject(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nova matéria
+            </Button>
+          </div>
         </div>
 
         {subjects.length > 0 && (
