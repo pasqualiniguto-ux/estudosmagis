@@ -15,6 +15,7 @@ export interface Topic {
   name: string;
   pdfUrl?: string;
   webUrl?: string;
+  lastReadAt?: string; // ISO timestamp of last manual read/review mark
 }
 
 export interface ScheduleEntry {
