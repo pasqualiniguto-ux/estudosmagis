@@ -372,27 +372,34 @@ export default function Subjects() {
                       const stats = getTopicStats(topic.id);
                       const topicLogs = studyLogs.filter(l => l.topicId === topic.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
                       const lastLog = topicLogs.length > 0 ? topicLogs.sort((a, b) => b.date.localeCompare(a.date))[0] : null;
-                      const lastDateLabel = lastLog
-                        ? (() => {
-                            const today = todayStr();
-                            if (lastLog.date === today) return 'Hoje';
-                            const diff = Math.floor((new Date(today).getTime() - new Date(lastLog.date).getTime()) / 86400000);
-                            if (diff === 1) return 'Ontem';
-                            return `${diff}d atrás`;
-                          })()
-                        : null;
+                      const formatDaysAgo = (dateStr: string) => {
+                        const today = todayStr();
+                        if (dateStr === today) return 'Hoje';
+                        const diff = Math.floor((new Date(today).getTime() - new Date(dateStr).getTime()) / 86400000);
+                        if (diff === 1) return 'Ontem';
+                        return `${diff}d atrás`;
+                      };
+                      const lastQuestionsLabel = lastLog ? formatDaysAgo(lastLog.date) : null;
+                      const lastReadLabel = topic.lastReadAt ? formatDaysAgo(topic.lastReadAt.slice(0, 10)) : null;
                       return (
                         <div key={topic.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors">
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            {lastDateLabel ? (
-                              <span className="flex items-center gap-1 text-muted-foreground/70">
-                                <Clock className="h-3 w-3" />{lastDateLabel}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground/50 italic text-[10px]">Nunca estudado</span>
-                            )}
+                            <span
+                              className={`flex items-center gap-1 ${lastReadLabel ? 'text-muted-foreground/70' : 'text-muted-foreground/40 italic'}`}
+                              title={topic.lastReadAt ? `Última leitura: ${new Date(topic.lastReadAt).toLocaleString('pt-BR')}` : 'Nunca lido'}
+                            >
+                              <BookOpen className="h-3 w-3" />
+                              {lastReadLabel ? `Lido ${lastReadLabel}` : 'Não lido'}
+                            </span>
+                            <span
+                              className={`flex items-center gap-1 ${lastQuestionsLabel ? 'text-muted-foreground/70' : 'text-muted-foreground/40 italic'}`}
+                              title={lastLog ? `Últimas questões: ${lastLog.date}` : 'Sem questões registradas'}
+                            >
+                              <Clock className="h-3 w-3" />
+                              {lastQuestionsLabel ? `Questões ${lastQuestionsLabel}` : 'Sem questões'}
+                            </span>
                             {stats.total > 0 && (
                               <>
                                 <span>{stats.total} questões</span>
