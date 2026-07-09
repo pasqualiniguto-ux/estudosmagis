@@ -412,10 +412,26 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
     if (updates.webUrl !== undefined) dbUpdates.web_url = updates.webUrl;
+    if (updates.lastReadAt !== undefined) dbUpdates.last_read_at = updates.lastReadAt;
     await supabase.from('topics').update(dbUpdates).eq('id', topicId);
     setSubjects(prev => prev.map(s =>
       s.id === subjectId
         ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, ...updates } : t) }
+        : s
+    ));
+  }, [user]);
+
+  const markTopicAsRead = useCallback(async (subjectId: string, topicId: string) => {
+    const now = new Date().toISOString();
+    await updateTopic(subjectId, topicId, { lastReadAt: now });
+  }, [updateTopic]);
+
+  const clearTopicLastRead = useCallback(async (subjectId: string, topicId: string) => {
+    if (!user) return;
+    await supabase.from('topics').update({ last_read_at: null } as any).eq('id', topicId);
+    setSubjects(prev => prev.map(s =>
+      s.id === subjectId
+        ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, lastReadAt: undefined } : t) }
         : s
     ));
   }, [user]);
