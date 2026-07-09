@@ -260,7 +260,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         id: t.id,
         name: t.name,
         pdfUrl: t.pdf_url || undefined,
-        webUrl: t.web_url || undefined
+        webUrl: t.web_url || undefined,
+        lastReadAt: t.last_read_at || undefined,
       });
     });
 
