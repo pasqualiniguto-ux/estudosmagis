@@ -33,6 +33,8 @@ interface StudyContextType {
   addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
+  markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
+  clearTopicLastRead: (subjectId: string, topicId: string) => Promise<void>;
   reorderTopic: (subjectId: string, topicId: string, direction: 'up' | 'down') => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
