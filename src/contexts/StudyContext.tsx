@@ -33,6 +33,8 @@ interface StudyContextType {
   addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
+  markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
+  clearTopicLastRead: (subjectId: string, topicId: string) => Promise<void>;
   reorderTopic: (subjectId: string, topicId: string, direction: 'up' | 'down') => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
@@ -260,7 +262,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         id: t.id,
         name: t.name,
         pdfUrl: t.pdf_url || undefined,
-        webUrl: t.web_url || undefined
+        webUrl: t.web_url || undefined,
+        lastReadAt: t.last_read_at || undefined,
       });
     });
 
@@ -411,10 +414,26 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
     if (updates.webUrl !== undefined) dbUpdates.web_url = updates.webUrl;
+    if (updates.lastReadAt !== undefined) dbUpdates.last_read_at = updates.lastReadAt;
     await supabase.from('topics').update(dbUpdates).eq('id', topicId);
     setSubjects(prev => prev.map(s =>
       s.id === subjectId
         ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, ...updates } : t) }
+        : s
+    ));
+  }, [user]);
+
+  const markTopicAsRead = useCallback(async (subjectId: string, topicId: string) => {
+    const now = new Date().toISOString();
+    await updateTopic(subjectId, topicId, { lastReadAt: now });
+  }, [updateTopic]);
+
+  const clearTopicLastRead = useCallback(async (subjectId: string, topicId: string) => {
+    if (!user) return;
+    await supabase.from('topics').update({ last_read_at: null } as any).eq('id', topicId);
+    setSubjects(prev => prev.map(s =>
+      s.id === subjectId
+        ? { ...s, topics: s.topics.map(t => t.id === topicId ? { ...t, lastReadAt: undefined } : t) }
         : s
     ));
   }, [user]);
@@ -860,7 +879,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       noteFont, noteSize, setNoteFont, setNoteSize,
-      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, reorderTopic,
+      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic,
       addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
       getProgressForEntry, getTotalProgressForEntry, getEntriesForDate,
