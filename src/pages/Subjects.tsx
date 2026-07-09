@@ -448,6 +448,24 @@ export default function Subjects() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className={`h-6 w-6 ${topic.lastReadAt ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                            onClick={() => {
+                              if (topic.lastReadAt) {
+                                if (confirm('Limpar registro de última leitura deste assunto?')) {
+                                  clearTopicLastRead(subject.id, topic.id);
+                                }
+                              } else {
+                                markTopicAsRead(subject.id, topic.id);
+                                toast({ title: 'Marcado como lido', description: topic.name });
+                              }
+                            }}
+                            title={topic.lastReadAt ? 'Última leitura registrada — clique para limpar' : 'Marcar como lido hoje'}
+                          >
+                            <BookOpen className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-primary"
                             onClick={() => setEditTopicState({ subjectId: subject.id, topicId: topic.id, name: topic.name })}
                             title="Editar assunto"
