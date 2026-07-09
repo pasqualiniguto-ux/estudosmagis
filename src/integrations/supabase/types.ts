@@ -363,6 +363,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_read_at: string | null
           name: string
           pdf_url: string | null
           sort_order: number
@@ -373,6 +374,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_read_at?: string | null
           name: string
           pdf_url?: string | null
           sort_order?: number
@@ -383,6 +385,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_read_at?: string | null
           name?: string
           pdf_url?: string | null
           sort_order?: number
