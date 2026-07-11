@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import AppNavigation from '@/components/AppNavigation';
+import QuickNotes from '@/components/QuickNotes';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
 import { useStudy } from '@/contexts/StudyContext';
@@ -215,6 +216,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
+      <QuickNotes />
       <main className="container py-6">
         <h1 className="text-2xl font-bold text-foreground mb-4">Planejamento Semanal</h1>
         <div className="mb-5">
