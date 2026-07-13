@@ -476,6 +476,30 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user, subjects]);
 
+  const moveTopicToIndex = useCallback(async (subjectId: string, topicId: string, toIndex: number) => {
+    if (!user) return;
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const fromIndex = subject.topics.findIndex(t => t.id === topicId);
+    if (fromIndex === -1) return;
+    const clampedTo = Math.max(0, Math.min(subject.topics.length - 1, toIndex));
+    if (fromIndex === clampedTo) return;
+
+    const newTopics = [...subject.topics];
+    const [moved] = newTopics.splice(fromIndex, 1);
+    newTopics.splice(clampedTo, 0, moved);
+
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, topics: newTopics } : s));
+
+    try {
+      for (let i = 0; i < newTopics.length; i++) {
+        await supabase.from('topics').update({ sort_order: i } as any).eq('id', newTopics[i].id);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar ordem dos assuntos:', e);
+    }
+  }, [user, subjects]);
+
   const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
     if (!user) return;
     const { data } = await supabase.from('schedule_entries').insert({
