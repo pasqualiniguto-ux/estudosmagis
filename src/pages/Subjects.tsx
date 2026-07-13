@@ -412,6 +412,28 @@ export default function Subjects() {
                           onDragEnd={() => { setDragTopic(null); setDragOverTopicId(null); }}
                           className={`flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
                         >
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
+                              onClick={() => reorderTopic(subject.id, topic.id, 'up')}
+                              disabled={topicIdx === 0}
+                              title="Mover para cima"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
+                              onClick={() => reorderTopic(subject.id, topic.id, 'down')}
+                              disabled={topicIdx === subject.topics.length - 1}
+                              title="Mover para baixo"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </div>
                           <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing flex-shrink-0" />
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
 
@@ -493,26 +515,6 @@ export default function Subjects() {
                             title={topic.lastReadAt ? 'Última leitura registrada — clique para limpar' : 'Marcar como lido hoje'}
                           >
                             <BookOpen className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
-                            onClick={() => reorderTopic(subject.id, topic.id, 'up')}
-                            disabled={topicIdx === 0}
-                            title="Mover para cima"
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
-                            onClick={() => reorderTopic(subject.id, topic.id, 'down')}
-                            disabled={topicIdx === subject.topics.length - 1}
-                            title="Mover para baixo"
-                          >
-                            <ArrowDown className="h-3 w-3" />
                           </Button>
                           <Button
                             variant="ghost"
