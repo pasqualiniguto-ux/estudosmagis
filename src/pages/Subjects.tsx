@@ -29,7 +29,10 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, moveTopicToIndex, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
+
+  const [dragTopic, setDragTopic] = useState<{ subjectId: string; topicId: string } | null>(null);
+  const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
