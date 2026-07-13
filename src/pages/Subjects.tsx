@@ -519,26 +519,6 @@ export default function Subjects() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
-                            onClick={() => reorderTopic(subject.id, topic.id, 'up')}
-                            disabled={topicIdx === 0}
-                            title="Mover para cima"
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
-                            onClick={() => reorderTopic(subject.id, topic.id, 'down')}
-                            disabled={topicIdx === subject.topics.length - 1}
-                            title="Mover para baixo"
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-primary"
                             onClick={() => setEditTopicState({ subjectId: subject.id, topicId: topic.id, name: topic.name })}
                             title="Editar assunto"
