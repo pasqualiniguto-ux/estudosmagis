@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,10 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, moveTopicToIndex, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
+
+  const [dragTopic, setDragTopic] = useState<{ subjectId: string; topicId: string } | null>(null);
+  const [dragOverTopicId, setDragOverTopicId] = useState<string | null>(null);
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -381,9 +384,37 @@ export default function Subjects() {
                       };
                       const lastQuestionsLabel = lastLog ? formatDaysAgo(lastLog.date) : null;
                       const lastReadLabel = topic.lastReadAt ? formatDaysAgo(topic.lastReadAt.slice(0, 10)) : null;
+                      const isDragOver = dragOverTopicId === topic.id && dragTopic?.subjectId === subject.id && dragTopic?.topicId !== topic.id;
                       return (
-                        <div key={topic.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors">
+                        <div
+                          key={topic.id}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = 'move';
+                            setDragTopic({ subjectId: subject.id, topicId: topic.id });
+                          }}
+                          onDragOver={(e) => {
+                            if (!dragTopic || dragTopic.subjectId !== subject.id) return;
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            if (dragOverTopicId !== topic.id) setDragOverTopicId(topic.id);
+                          }}
+                          onDragLeave={() => { if (dragOverTopicId === topic.id) setDragOverTopicId(null); }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (!dragTopic || dragTopic.subjectId !== subject.id || dragTopic.topicId === topic.id) {
+                              setDragTopic(null); setDragOverTopicId(null);
+                              return;
+                            }
+                            moveTopicToIndex(subject.id, dragTopic.topicId, topicIdx);
+                            setDragTopic(null); setDragOverTopicId(null);
+                          }}
+                          onDragEnd={() => { setDragTopic(null); setDragOverTopicId(null); }}
+                          className={`flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
+                        >
+                          <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing flex-shrink-0" />
                           <span className="text-sm text-foreground flex-1">{topic.name}</span>
+
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span

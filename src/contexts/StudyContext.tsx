@@ -36,6 +36,7 @@ interface StudyContextType {
   markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
   clearTopicLastRead: (subjectId: string, topicId: string) => Promise<void>;
   reorderTopic: (subjectId: string, topicId: string, direction: 'up' | 'down') => void;
+  moveTopicToIndex: (subjectId: string, topicId: string, toIndex: number) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
   removeScheduleEntry: (id: string) => void;
@@ -475,6 +476,30 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     }
   }, [user, subjects]);
 
+  const moveTopicToIndex = useCallback(async (subjectId: string, topicId: string, toIndex: number) => {
+    if (!user) return;
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const fromIndex = subject.topics.findIndex(t => t.id === topicId);
+    if (fromIndex === -1) return;
+    const clampedTo = Math.max(0, Math.min(subject.topics.length - 1, toIndex));
+    if (fromIndex === clampedTo) return;
+
+    const newTopics = [...subject.topics];
+    const [moved] = newTopics.splice(fromIndex, 1);
+    newTopics.splice(clampedTo, 0, moved);
+
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, topics: newTopics } : s));
+
+    try {
+      for (let i = 0; i < newTopics.length; i++) {
+        await supabase.from('topics').update({ sort_order: i } as any).eq('id', newTopics[i].id);
+      }
+    } catch (e) {
+      console.error('Erro ao salvar ordem dos assuntos:', e);
+    }
+  }, [user, subjects]);
+
   const addScheduleEntry = useCallback(async (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => {
     if (!user) return;
     const { data } = await supabase.from('schedule_entries').insert({
@@ -879,7 +904,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     <StudyContext.Provider value={{
       subjects, scheduleEntries, cycleEntries, activeCycleIndex, completedCyclesCount, dailyProgress, studyLogs, exams, notes, loading,
       noteFont, noteSize, setNoteFont, setNoteSize,
-      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic,
+      addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, moveTopicToIndex,
       addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
       addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
       getProgressForEntry, getTotalProgressForEntry, getEntriesForDate,
