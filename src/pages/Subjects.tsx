@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,7 @@ function PercentageBadge({ percentage }: { percentage: number }) {
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
+  const { subjects, addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, getTopicStats, getSubjectStats, addStudyLog, studyLogs, updateStudyLog, removeStudyLog } = useStudy();
 
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -462,6 +462,26 @@ export default function Subjects() {
                             title={topic.lastReadAt ? 'Última leitura registrada — clique para limpar' : 'Marcar como lido hoje'}
                           >
                             <BookOpen className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
+                            onClick={() => reorderTopic(subject.id, topic.id, 'up')}
+                            disabled={topicIdx === 0}
+                            title="Mover para cima"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary disabled:opacity-30"
+                            onClick={() => reorderTopic(subject.id, topic.id, 'down')}
+                            disabled={topicIdx === subject.topics.length - 1}
+                            title="Mover para baixo"
+                          >
+                            <ArrowDown className="h-3 w-3" />
                           </Button>
                           <Button
                             variant="ghost"
