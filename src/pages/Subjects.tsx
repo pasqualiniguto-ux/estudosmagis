@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight, ClipboardList, Pencil, Link2, FileText, ExternalLink, Paperclip, Loader2, Upload, Clock, LayoutGrid, List, BookOpen, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
