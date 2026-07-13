@@ -36,6 +36,7 @@ interface StudyContextType {
   markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
   clearTopicLastRead: (subjectId: string, topicId: string) => Promise<void>;
   reorderTopic: (subjectId: string, topicId: string, direction: 'up' | 'down') => void;
+  moveTopicToIndex: (subjectId: string, topicId: string, toIndex: number) => void;
   addScheduleEntry: (subjectId: string, plannedMinutes: number, recurring: boolean, dayOfWeek: number, date?: string) => void;
   updateScheduleEntry: (id: string, updates: { notes?: string; dayOfWeek?: number; date?: string | null; recurring?: boolean }) => void;
   removeScheduleEntry: (id: string) => void;
