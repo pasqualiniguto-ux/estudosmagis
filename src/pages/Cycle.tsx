@@ -374,6 +374,18 @@ export default function Cycle() {
                     <Input type="number" min={0} max={59} value={logTimeM} onChange={e => setLogTimeM(Number(e.target.value))} />
                   </div>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => {
+                    setLogTimeH(Math.floor(logEntry.plannedMinutes / 60));
+                    setLogTimeM(logEntry.plannedMinutes % 60);
+                  }}
+                >
+                  Cumpri o tempo previsto ({fmtPlanned(logEntry.plannedMinutes)})
+                </Button>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Questões certas</label>
