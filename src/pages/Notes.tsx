@@ -12,11 +12,13 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -160,6 +162,14 @@ export default function Notes() {
     if (pdfUrl === pubUrl) { setPdfUrl(null); setPdfName(''); }
   };
 
+  const noteSnippet = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed.map((b: any) => b.text || '').join(' ');
+    } catch { /* plain text */ }
+    return content;
+  };
+
   // ============ Shared blocks ============
   const noteList = (
     <div className="flex flex-col h-full bg-card/30 border-r border-border">
@@ -178,8 +188,11 @@ export default function Notes() {
         <div className="p-2 space-y-1">
           {filteredNotes.map(note => (
             <div key={note.id} className="group relative">
-              <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
+              <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3.5 md:p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
                 <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
+                {note.content?.trim() && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{noteSnippet(note.content).replace(/\n+/g, ' ').slice(0, 80)}</p>
+                )}
                 <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]"><Clock className="h-3 w-3" /> {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}</div>
               </button>
               <button onClick={() => handleDeleteNote(note.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-4 w-4" /></button>
@@ -202,7 +215,7 @@ export default function Notes() {
 
   const editor = (
     <div className="flex flex-col h-full bg-background">
-      <div className="px-4 md:px-6 py-3 border-b border-border bg-card/10 flex items-center justify-between gap-2 flex-wrap">
+      <div className="px-3 md:px-6 py-2 md:py-3 border-b border-border bg-card/10 flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-3 overflow-hidden">
           <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelectedNoteId(null)}><ChevronRight className="h-5 w-5 rotate-180" /></Button>
           <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none max-w-[120px] truncate">
@@ -247,13 +260,13 @@ export default function Notes() {
         </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
+      <ResizablePanelGroup direction={isMobile ? 'vertical' : 'horizontal'} className="flex-1">
         <ResizablePanel defaultSize={pdfUrl ? 50 : 100} minSize={25}>
-          <div className="h-full flex flex-col p-6 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
+          <div className="h-full flex flex-col p-4 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
             <input
               type="text"
               placeholder="Título da nota..."
-              className="text-2xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-4"
+              className="text-xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-3 md:mb-4"
               value={localTitle}
               onChange={e => setLocalTitle(e.target.value)}
             />
@@ -285,9 +298,9 @@ export default function Notes() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background">
       <AppNavigation />
-      <main className="h-[calc(100vh-3rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+      <main className="h-[calc(100dvh-3rem-4rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
         {/* ===== Mobile / Tablet: lista OU editor em tela cheia ===== */}
         <div className="md:hidden flex-1 overflow-hidden">
           {selectedNoteId ? editor : noteList}
