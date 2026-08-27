@@ -215,7 +215,7 @@ export default function Notes() {
 
   const editor = (
     <div className="flex flex-col h-full bg-background">
-      <div className="px-4 md:px-6 py-3 border-b border-border bg-card/10 flex items-center justify-between gap-2 flex-wrap">
+      <div className="px-3 md:px-6 py-2 md:py-3 border-b border-border bg-card/10 flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-3 overflow-hidden">
           <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelectedNoteId(null)}><ChevronRight className="h-5 w-5 rotate-180" /></Button>
           <select value={localSubjectId || ''} onChange={e => setLocalSubjectId(e.target.value || undefined)} className="text-xs bg-muted/50 border border-border rounded px-2 py-1 outline-none max-w-[120px] truncate">
@@ -260,7 +260,7 @@ export default function Notes() {
         </div>
       </div>
 
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
+      <ResizablePanelGroup direction={isMobile ? 'vertical' : 'horizontal'} className="flex-1">
         <ResizablePanel defaultSize={pdfUrl ? 50 : 100} minSize={25}>
           <div className="h-full flex flex-col p-6 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
             <input
