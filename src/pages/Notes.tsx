@@ -162,6 +162,14 @@ export default function Notes() {
     if (pdfUrl === pubUrl) { setPdfUrl(null); setPdfName(''); }
   };
 
+  const noteSnippet = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed.map((b: any) => b.text || '').join(' ');
+    } catch { /* plain text */ }
+    return content;
+  };
+
   // ============ Shared blocks ============
   const noteList = (
     <div className="flex flex-col h-full bg-card/30 border-r border-border">
@@ -183,7 +191,7 @@ export default function Notes() {
               <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3.5 md:p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
                 <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
                 {note.content?.trim() && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{note.content.replace(/\n+/g, ' ').slice(0, 80)}</p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{noteSnippet(note.content).replace(/\n+/g, ' ').slice(0, 80)}</p>
                 )}
                 <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]"><Clock className="h-3 w-3" /> {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}</div>
               </button>
