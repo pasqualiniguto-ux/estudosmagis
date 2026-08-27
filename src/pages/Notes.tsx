@@ -262,11 +262,11 @@ export default function Notes() {
 
       <ResizablePanelGroup direction={isMobile ? 'vertical' : 'horizontal'} className="flex-1">
         <ResizablePanel defaultSize={pdfUrl ? 50 : 100} minSize={25}>
-          <div className="h-full flex flex-col p-6 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
+          <div className="h-full flex flex-col p-4 md:p-10 max-w-4xl mx-auto w-full overflow-hidden">
             <input
               type="text"
               placeholder="Título da nota..."
-              className="text-2xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-4"
+              className="text-xl md:text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full mb-3 md:mb-4"
               value={localTitle}
               onChange={e => setLocalTitle(e.target.value)}
             />
@@ -298,9 +298,9 @@ export default function Notes() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background">
       <AppNavigation />
-      <main className="h-[calc(100vh-3rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+      <main className="h-[calc(100dvh-3rem-4rem)] md:h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
         {/* ===== Mobile / Tablet: lista OU editor em tela cheia ===== */}
         <div className="md:hidden flex-1 overflow-hidden">
           {selectedNoteId ? editor : noteList}
