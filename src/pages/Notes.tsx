@@ -165,7 +165,7 @@ export default function Notes() {
       <AppNavigation />
       <main className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="flex-1">
-          <ResizablePanel defaultSize={20} minSize={15} className="hidden md:block">
+          <ResizablePanel defaultSize={20} minSize={15} className={`${selectedNoteId ? 'hidden md:block' : 'block'}`}>
             <div className="flex flex-col h-full bg-card/30 border-r border-border">
               <div className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
