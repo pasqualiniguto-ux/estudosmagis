@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// NOTE: mobile layout renders list OR editor full-screen; desktop uses resizable side-by-side panels
 import { useStudy } from '@/contexts/StudyContext';
 import AppNavigation from '@/components/AppNavigation';
 import { Button } from '@/components/ui/button';
@@ -181,8 +180,11 @@ export default function Notes() {
         <div className="p-2 space-y-1">
           {filteredNotes.map(note => (
             <div key={note.id} className="group relative">
-              <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
+              <button onClick={() => setSelectedNoteId(note.id)} className={`w-full text-left p-3.5 md:p-3 rounded-lg transition-all pr-10 ${selectedNoteId === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50 border border-transparent'}`}>
                 <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-primary' : ''}`}>{note.title || 'Sem título'}</h3>
+                {note.content?.trim() && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{note.content.replace(/\n+/g, ' ').slice(0, 80)}</p>
+                )}
                 <div className="flex items-center gap-2 mt-1 opacity-60 text-[10px]"><Clock className="h-3 w-3" /> {format(new Date(note.updatedAt), 'dd/MM/yy', { locale: ptBR })}</div>
               </button>
               <button onClick={() => handleDeleteNote(note.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-4 w-4" /></button>
