@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+// NOTE: mobile layout renders list OR editor full-screen; desktop uses resizable side-by-side panels
 import { useStudy } from '@/contexts/StudyContext';
 import AppNavigation from '@/components/AppNavigation';
 import { Button } from '@/components/ui/button';
@@ -12,11 +13,13 @@ import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Notes() {
   const { notes, subjects, addNote, updateNote, removeNote } = useStudy();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
