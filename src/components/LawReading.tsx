@@ -36,8 +36,7 @@ function fmt(seconds: number): string {
 async function extractText(file: File): Promise<string> {
   if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
     const pdfjs = await import('pdfjs-dist');
-    // @ts-expect-error - worker asset resolved by Vite
-    const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+    const worker: { default: string } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url' as string);
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
     const buffer = await file.arrayBuffer();
     const doc = await pdfjs.getDocument({ data: buffer }).promise;
