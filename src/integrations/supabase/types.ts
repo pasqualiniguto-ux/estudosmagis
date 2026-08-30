@@ -123,6 +123,45 @@ export type Database = {
         }
         Relationships: []
       }
+      law_readings: {
+        Row: {
+          articles: string
+          created_at: string
+          date: string
+          done: boolean
+          id: string
+          law: string
+          planned_minutes: number
+          read_seconds: number
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          articles?: string
+          created_at?: string
+          date: string
+          done?: boolean
+          id?: string
+          law: string
+          planned_minutes?: number
+          read_seconds?: number
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          articles?: string
+          created_at?: string
+          date?: string
+          done?: boolean
+          id?: string
+          law?: string
+          planned_minutes?: number
+          read_seconds?: number
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null
