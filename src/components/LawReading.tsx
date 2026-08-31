@@ -7,6 +7,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 import { toDateStr, todayStr } from '@/lib/dateUtils';
 import { Scale, Plus, Trash2, Play, Pause, Upload, Loader2, Check } from 'lucide-react';
 
@@ -66,6 +77,7 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const [editArticles, setEditArticles] = useState('');
   const [editMinutes, setEditMinutes] = useState(15);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => setSelectedDate(initialDate), [initialDate]);
 
@@ -150,6 +162,20 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     if (runningId === id) setRunningId(null);
     setItems(prev => prev.filter(i => i.id !== id));
     await supabase.from('law_readings').delete().eq('id', id);
+  };
+
+  const clearAll = async () => {
+    const dates = weekDates.map(toDateStr);
+    setRunningId(null);
+    setItems([]);
+    setConfirmClear(false);
+    const { error } = await supabase.from('law_readings').delete().in('date', dates);
+    if (error) {
+      toast({ title: 'Erro ao limpar', variant: 'destructive' });
+      load();
+    } else {
+      toast({ title: 'Leituras removidas', description: `${dates.length} dias limpos.` });
+    }
   };
 
   const openEdit = (item: LawReadingItem) => {
@@ -251,6 +277,15 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
           </Button>
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => setAdding(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-destructive"
+            disabled={items.length === 0}
+            onClick={() => setConfirmClear(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Limpar tudo
           </Button>
         </div>
       </div>
@@ -382,6 +417,23 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent className="sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar todas as leituras?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai apagar as leituras de lei seca de todos os {weekDates.length} dias da semana exibida. Não dá para desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={clearAll}>
+              Limpar tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
