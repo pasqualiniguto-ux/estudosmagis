@@ -164,6 +164,20 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     await supabase.from('law_readings').delete().eq('id', id);
   };
 
+  const clearAll = async () => {
+    const dates = weekDates.map(toDateStr);
+    setRunningId(null);
+    setItems([]);
+    setConfirmClear(false);
+    const { error } = await supabase.from('law_readings').delete().in('date', dates);
+    if (error) {
+      toast({ title: 'Erro ao limpar', variant: 'destructive' });
+      load();
+    } else {
+      toast({ title: 'Leituras removidas', description: `${dates.length} dias limpos.` });
+    }
+  };
+
   const openEdit = (item: LawReadingItem) => {
     setEditItem(item);
     setEditLaw(item.law);
