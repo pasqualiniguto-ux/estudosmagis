@@ -7,13 +7,26 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { text } = await req.json();
-    if (!text || typeof text !== "string") {
-      return new Response(JSON.stringify({ error: "Texto ausente" }), {
+    const { text, pdf, filename } = await req.json();
+    if ((!text || typeof text !== "string") && (!pdf || typeof pdf !== "string")) {
+      return new Response(JSON.stringify({ error: "Envie um texto ou um PDF" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const userContent = pdf
+      ? [
+          { type: "text", text: "Extraia o roteiro de leitura de lei seca deste documento." },
+          {
+            type: "file",
+            file: {
+              filename: typeof filename === "string" && filename ? filename : "roteiro.pdf",
+              file_data: pdf.startsWith("data:") ? pdf : `data:application/pdf;base64,${pdf}`,
+            },
+          },
+        ]
+      : text.slice(0, 60000);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
