@@ -33,22 +33,17 @@ function fmt(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-async function extractText(file: File): Promise<string> {
-  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const pdfjs = await import('pdfjs-dist');
-    const worker: { default: string } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url' as string);
-    pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-    const buffer = await file.arrayBuffer();
-    const doc = await pdfjs.getDocument({ data: buffer }).promise;
-    let out = '';
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      out += content.items.map((it: any) => it.str).join(' ') + '\n';
-    }
-    return out;
-  }
-  return file.text();
+function isPdf(file: File) {
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Não consegui ler o arquivo'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function LawReading({ weekDates }: { weekDates: Date[] }) {
@@ -162,10 +157,22 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
-      const text = await extractText(file);
-      if (!text.trim()) throw new Error('Arquivo vazio');
-      const { data, error } = await supabase.functions.invoke('parse-law-plan', { body: { text } });
-      if (error) throw error;
+      let body: Record<string, unknown>;
+      if (isPdf(file)) {
+        const dataUrl = await fileToDataUrl(file);
+        if (!dataUrl.includes(',') || dataUrl.split(',')[1].length < 100) throw new Error('PDF vazio ou ilegível');
+        body = { pdf: dataUrl, filename: file.name };
+      } else {
+        const text = await file.text();
+        if (!text.trim()) throw new Error('Arquivo vazio');
+        body = { text };
+      }
+      const { data, error } = await supabase.functions.invoke('parse-law-plan', { body });
+      if (error) {
+        let detail = '';
+        try { detail = ((await (error as any).context?.json?.()) ?? {})?.error ?? ''; } catch { /* ignore */ }
+        throw new Error(detail || error.message);
+      }
       const parsed: { law: string; articles: string; plannedMinutes: number; day?: number | null }[] = data?.items ?? [];
       if (!parsed.length) { toast({ title: 'Nenhum item encontrado no roteiro', variant: 'destructive' }); return; }
 

@@ -7,27 +7,40 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { text } = await req.json();
-    if (!text || typeof text !== "string") {
-      return new Response(JSON.stringify({ error: "Texto ausente" }), {
+    const { text, pdf, filename } = await req.json();
+    if ((!text || typeof text !== "string") && (!pdf || typeof pdf !== "string")) {
+      return new Response(JSON.stringify({ error: "Envie um texto ou um PDF" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const userContent = pdf
+      ? [
+          { type: "text", text: "Extraia o roteiro de leitura de lei seca deste documento." },
+          {
+            type: "file",
+            file: {
+              filename: typeof filename === "string" && filename ? filename : "roteiro.pdf",
+              file_data: pdf.startsWith("data:") ? pdf : `data:application/pdf;base64,${pdf}`,
+            },
+          },
+        ]
+      : text.slice(0, 60000);
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.7-flash",
         messages: [
           {
             role: "system",
             content:
               "Você extrai roteiros de leitura de lei seca. Retorne apenas os itens de leitura encontrados no texto, em ordem. Para cada item: 'law' (nome/sigla da lei, ex: CF/88, Lei 8.112/90), 'articles' (artigos a ler, ex: arts. 1º ao 5º), 'plannedMinutes' (minutos previstos; use 15 se não houver), 'day' (número sequencial do dia, começando em 1, se o texto organizar por dias; senão null).",
           },
-          { role: "user", content: text.slice(0, 60000) },
+          { role: "user", content: userContent },
         ],
         tools: [
           {
