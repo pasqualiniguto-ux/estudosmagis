@@ -61,6 +61,10 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const [newMinutes, setNewMinutes] = useState(15);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editItem, setEditItem] = useState<LawReadingItem | null>(null);
+  const [editLaw, setEditLaw] = useState('');
+  const [editArticles, setEditArticles] = useState('');
+  const [editMinutes, setEditMinutes] = useState(15);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setSelectedDate(initialDate), [initialDate]);
