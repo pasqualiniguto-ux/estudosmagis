@@ -273,7 +273,15 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
                   {item.law}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {item.articles || 'Sem artigos definidos'} · {fmt(item.readSeconds)} / {item.plannedMinutes}min
+                  {item.articles || 'Sem artigos definidos'} · {fmt(item.readSeconds)} /{' '}
+                  <button
+                    type="button"
+                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                    title="Alterar tempo previsto"
+                    onClick={() => openEdit(item)}
+                  >
+                    {item.plannedMinutes}min
+                  </button>
                 </p>
               </div>
               <Button
