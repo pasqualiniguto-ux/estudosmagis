@@ -61,6 +61,10 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const [newMinutes, setNewMinutes] = useState(15);
   const [runningId, setRunningId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editItem, setEditItem] = useState<LawReadingItem | null>(null);
+  const [editLaw, setEditLaw] = useState('');
+  const [editArticles, setEditArticles] = useState('');
+  const [editMinutes, setEditMinutes] = useState(15);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => setSelectedDate(initialDate), [initialDate]);
@@ -146,6 +150,29 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     if (runningId === id) setRunningId(null);
     setItems(prev => prev.filter(i => i.id !== id));
     await supabase.from('law_readings').delete().eq('id', id);
+  };
+
+  const openEdit = (item: LawReadingItem) => {
+    setEditItem(item);
+    setEditLaw(item.law);
+    setEditArticles(item.articles);
+    setEditMinutes(item.plannedMinutes);
+  };
+
+  const saveEdit = async () => {
+    if (!editItem) return;
+    const minutes = Math.max(1, Math.round(editMinutes || 1));
+    const law = editLaw.trim() || editItem.law;
+    const articles = editArticles.trim();
+    setItems(prev =>
+      prev.map(i => (i.id === editItem.id ? { ...i, law, articles, plannedMinutes: minutes } : i)),
+    );
+    setEditItem(null);
+    const { error } = await supabase
+      .from('law_readings')
+      .update({ law, articles, planned_minutes: minutes })
+      .eq('id', editItem.id);
+    if (error) { toast({ title: 'Erro ao salvar', variant: 'destructive' }); load(); }
   };
 
   const completePlanned = async (item: LawReadingItem) => {
@@ -273,7 +300,15 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
                   {item.law}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {item.articles || 'Sem artigos definidos'} · {fmt(item.readSeconds)} / {item.plannedMinutes}min
+                  {item.articles || 'Sem artigos definidos'} · {fmt(item.readSeconds)} /{' '}
+                  <button
+                    type="button"
+                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                    title="Alterar tempo previsto"
+                    onClick={() => openEdit(item)}
+                  >
+                    {item.plannedMinutes}min
+                  </button>
                 </p>
               </div>
               <Button
@@ -301,6 +336,29 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
           ))}
         </ul>
       )}
+
+      <Dialog open={!!editItem} onOpenChange={o => !o && setEditItem(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar leitura</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Lei</Label>
+              <Input value={editLaw} onChange={e => setEditLaw(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Artigos</Label>
+              <Input value={editArticles} onChange={e => setEditArticles(e.target.value)} placeholder="Ex: arts. 5º ao 11" />
+            </div>
+            <div>
+              <Label className="text-xs">Minutos previstos</Label>
+              <Input type="number" min={1} value={editMinutes} onChange={e => setEditMinutes(Number(e.target.value))} />
+            </div>
+            <Button className="w-full" onClick={saveEdit}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-sm">
