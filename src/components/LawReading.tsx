@@ -157,10 +157,22 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
-      const text = await extractText(file);
-      if (!text.trim()) throw new Error('Arquivo vazio');
-      const { data, error } = await supabase.functions.invoke('parse-law-plan', { body: { text } });
-      if (error) throw error;
+      let body: Record<string, unknown>;
+      if (isPdf(file)) {
+        const dataUrl = await fileToDataUrl(file);
+        if (!dataUrl.includes(',') || dataUrl.split(',')[1].length < 100) throw new Error('PDF vazio ou ilegível');
+        body = { pdf: dataUrl, filename: file.name };
+      } else {
+        const text = await file.text();
+        if (!text.trim()) throw new Error('Arquivo vazio');
+        body = { text };
+      }
+      const { data, error } = await supabase.functions.invoke('parse-law-plan', { body });
+      if (error) {
+        let detail = '';
+        try { detail = ((await (error as any).context?.json?.()) ?? {})?.error ?? ''; } catch { /* ignore */ }
+        throw new Error(detail || error.message);
+      }
       const parsed: { law: string; articles: string; plannedMinutes: number; day?: number | null }[] = data?.items ?? [];
       if (!parsed.length) { toast({ title: 'Nenhum item encontrado no roteiro', variant: 'destructive' }); return; }
 
