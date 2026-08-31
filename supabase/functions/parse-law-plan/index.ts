@@ -33,14 +33,14 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3.7-flash",
         messages: [
           {
             role: "system",
             content:
               "Você extrai roteiros de leitura de lei seca. Retorne apenas os itens de leitura encontrados no texto, em ordem. Para cada item: 'law' (nome/sigla da lei, ex: CF/88, Lei 8.112/90), 'articles' (artigos a ler, ex: arts. 1º ao 5º), 'plannedMinutes' (minutos previstos; use 15 se não houver), 'day' (número sequencial do dia, começando em 1, se o texto organizar por dias; senão null).",
           },
-          { role: "user", content: text.slice(0, 60000) },
+          { role: "user", content: userContent },
         ],
         tools: [
           {
