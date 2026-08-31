@@ -152,6 +152,29 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     await supabase.from('law_readings').delete().eq('id', id);
   };
 
+  const openEdit = (item: LawReadingItem) => {
+    setEditItem(item);
+    setEditLaw(item.law);
+    setEditArticles(item.articles);
+    setEditMinutes(item.plannedMinutes);
+  };
+
+  const saveEdit = async () => {
+    if (!editItem) return;
+    const minutes = Math.max(1, Math.round(editMinutes || 1));
+    const law = editLaw.trim() || editItem.law;
+    const articles = editArticles.trim();
+    setItems(prev =>
+      prev.map(i => (i.id === editItem.id ? { ...i, law, articles, plannedMinutes: minutes } : i)),
+    );
+    setEditItem(null);
+    const { error } = await supabase
+      .from('law_readings')
+      .update({ law, articles, planned_minutes: minutes })
+      .eq('id', editItem.id);
+    if (error) { toast({ title: 'Erro ao salvar', variant: 'destructive' }); load(); }
+  };
+
   const completePlanned = async (item: LawReadingItem) => {
     const seconds = item.plannedMinutes * 60;
     setItems(prev => prev.map(i => (i.id === item.id ? { ...i, readSeconds: seconds, done: true } : i)));
