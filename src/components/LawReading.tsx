@@ -263,6 +263,15 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => setAdding(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-destructive"
+            disabled={items.length === 0}
+            onClick={() => setConfirmClear(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Limpar tudo
+          </Button>
         </div>
       </div>
 
