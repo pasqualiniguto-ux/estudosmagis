@@ -233,6 +233,7 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return;
       const start = new Date(`${selectedDate}T12:00:00`);
+      const minutes = Math.max(1, Math.round(importMinutes || 15));
       const rows = parsed.map((p, idx) => {
         const dayIdx = (p.day ?? idx + 1) - 1;
         const d = new Date(start);
@@ -242,7 +243,7 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
           date: toDateStr(d),
           law: p.law,
           articles: p.articles ?? '',
-          planned_minutes: Math.max(1, Math.round(p.plannedMinutes || 15)),
+          planned_minutes: minutes,
           sort_order: idx,
         };
       });
