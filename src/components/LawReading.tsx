@@ -273,6 +273,17 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
           />
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min={1}
+              value={importMinutes}
+              onChange={e => setImportMinutes(Number(e.target.value))}
+              title="Minutos previstos por dia (usado na importação)"
+              className="h-8 w-14 rounded-md border border-border bg-background px-1.5 text-xs"
+            />
+            <span className="text-xs text-muted-foreground">min/dia</span>
+          </div>
           <Button variant="ghost" size="sm" className="text-xs" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
             Roteiro
