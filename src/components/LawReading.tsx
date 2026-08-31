@@ -337,6 +337,29 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
         </ul>
       )}
 
+      <Dialog open={!!editItem} onOpenChange={o => !o && setEditItem(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar leitura</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Lei</Label>
+              <Input value={editLaw} onChange={e => setEditLaw(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Artigos</Label>
+              <Input value={editArticles} onChange={e => setEditArticles(e.target.value)} placeholder="Ex: arts. 5º ao 11" />
+            </div>
+            <div>
+              <Label className="text-xs">Minutos previstos</Label>
+              <Input type="number" min={1} value={editMinutes} onChange={e => setEditMinutes(Number(e.target.value))} />
+            </div>
+            <Button className="w-full" onClick={saveEdit}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
