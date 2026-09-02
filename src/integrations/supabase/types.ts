@@ -134,18 +134,20 @@ export type Database = {
           planned_minutes: number
           read_seconds: number
           sort_order: number
+          status: string
           user_id: string
         }
         Insert: {
           articles?: string
           created_at?: string
-          date: string
+          date?: string
           done?: boolean
           id?: string
           law: string
           planned_minutes?: number
           read_seconds?: number
           sort_order?: number
+          status?: string
           user_id: string
         }
         Update: {
@@ -158,6 +160,7 @@ export type Database = {
           planned_minutes?: number
           read_seconds?: number
           sort_order?: number
+          status?: string
           user_id?: string
         }
         Relationships: []
