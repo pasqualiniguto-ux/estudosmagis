@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { Scale, Plus, Trash2, Play, Pause, Upload, Loader2, Circle, CircleDashed, CheckCircle2 } from 'lucide-react';
+import { Scale, Plus, Trash2, Play, Pause, Upload, Loader2, Circle, CircleDashed, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 
 type ReadingStatus = 'pending' | 'partial' | 'done';
 
