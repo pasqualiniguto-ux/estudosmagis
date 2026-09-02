@@ -253,9 +253,20 @@ export default function LawReading() {
   return (
     <div className="mt-6 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <button
+          type="button"
+          onClick={() => setCollapsed(c => !c)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-foreground hover:opacity-80"
+          title={collapsed ? 'Expandir' : 'Recolher'}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           <Scale className="h-4 w-4 text-primary" /> Lei seca — metas de leitura
-        </h2>
+          {items.length > 0 && (
+            <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {doneCount}/{items.length}
+            </span>
+          )}
+        </button>
         <div className="flex flex-wrap items-center gap-1">
           <input
             ref={fileRef}
@@ -294,7 +305,7 @@ export default function LawReading() {
         </div>
       </div>
 
-      {items.length > 0 && (
+      {!collapsed && items.length > 0 && (
         <div className="mb-3">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
             <span>{doneCount} concluídas · {partialCount} parciais · {items.length} metas</span>
@@ -304,57 +315,59 @@ export default function LawReading() {
         </div>
       )}
 
-      {items.length === 0 ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">
-          Nenhuma meta de leitura. Adicione manualmente ou importe um roteiro.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {items.map(item => {
-            const meta = STATUS_META[item.status];
-            const StatusIcon = meta.icon;
-            return (
-              <li key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
-                <button
-                  type="button"
-                  title={`${meta.label} — toque para alternar`}
-                  onClick={() => setStatus(item, NEXT_STATUS[item.status])}
-                  className={`shrink-0 ${meta.className}`}
-                >
-                  <StatusIcon className="h-5 w-5" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm font-medium ${item.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                    {item.law}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {item.articles || 'Sem artigos definidos'} · {meta.label} · {fmt(item.readSeconds)} /{' '}
-                    <button
-                      type="button"
-                      className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-                      title="Alterar lei, artigos e tempo previsto"
-                      onClick={() => openEdit(item)}
-                    >
-                      {item.plannedMinutes}min
-                    </button>
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  title={runningId === item.id ? 'Pausar leitura' : 'Cronometrar leitura'}
-                  onClick={() => (runningId === item.id ? stopTimer() : (stopTimer(), setRunningId(item.id)))}
-                >
-                  {runningId === item.id ? <Pause className="h-4 w-4 text-primary" /> : <Play className="h-4 w-4" />}
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
+      {!collapsed && (
+        items.length === 0 ? (
+          <p className="py-4 text-center text-xs text-muted-foreground">
+            Nenhuma meta de leitura. Adicione manualmente ou importe um roteiro.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {items.map(item => {
+              const meta = STATUS_META[item.status];
+              const StatusIcon = meta.icon;
+              return (
+                <li key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
+                  <button
+                    type="button"
+                    title={`${meta.label} — toque para alternar`}
+                    onClick={() => setStatus(item, NEXT_STATUS[item.status])}
+                    className={`shrink-0 ${meta.className}`}
+                  >
+                    <StatusIcon className="h-5 w-5" />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate text-sm font-medium ${item.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                      {item.law}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {item.articles || 'Sem artigos definidos'} · {meta.label} · {fmt(item.readSeconds)} /{' '}
+                      <button
+                        type="button"
+                        className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                        title="Alterar lei, artigos e tempo previsto"
+                        onClick={() => openEdit(item)}
+                      >
+                        {item.plannedMinutes}min
+                      </button>
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    title={runningId === item.id ? 'Pausar leitura' : 'Cronometrar leitura'}
+                    onClick={() => (runningId === item.id ? stopTimer() : (stopTimer(), setRunningId(item.id)))}
+                  >
+                    {runningId === item.id ? <Pause className="h-4 w-4 text-primary" /> : <Play className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        )
       )}
 
       <Dialog open={!!editItem} onOpenChange={o => !o && setEditItem(null)}>
