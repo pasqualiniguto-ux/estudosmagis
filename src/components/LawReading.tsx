@@ -81,6 +81,7 @@ export default function LawReading() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [importMinutes, setImportMinutes] = useState(15);
+  const [collapsed, setCollapsed] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
