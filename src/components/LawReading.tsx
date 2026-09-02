@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
@@ -18,21 +17,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { toDateStr, todayStr } from '@/lib/dateUtils';
-import { Scale, Plus, Trash2, Play, Pause, Upload, Loader2, Check } from 'lucide-react';
+import { Scale, Plus, Trash2, Play, Pause, Upload, Loader2, Circle, CircleDashed, CheckCircle2 } from 'lucide-react';
+
+type ReadingStatus = 'pending' | 'partial' | 'done';
 
 interface LawReadingItem {
   id: string;
-  date: string;
   law: string;
   articles: string;
   plannedMinutes: number;
   readSeconds: number;
-  done: boolean;
+  status: ReadingStatus;
   sortOrder: number;
 }
 
-const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const STATUS_META: Record<ReadingStatus, { label: string; icon: typeof Circle; className: string }> = {
+  pending: { label: 'Pendente', icon: Circle, className: 'text-muted-foreground' },
+  partial: { label: 'Parcial', icon: CircleDashed, className: 'text-amber-500' },
+  done: { label: 'Concluída', icon: CheckCircle2, className: 'text-primary' },
+};
+
+const NEXT_STATUS: Record<ReadingStatus, ReadingStatus> = {
+  pending: 'partial',
+  partial: 'done',
+  done: 'pending',
+};
 
 function fmt(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -57,14 +66,7 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-export default function LawReading({ weekDates }: { weekDates: Date[] }) {
-  const today = todayStr();
-  const initialDate = useMemo(() => {
-    const match = weekDates.find(d => toDateStr(d) === today);
-    return toDateStr(match ?? weekDates[0]);
-  }, [weekDates, today]);
-
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+export default function LawReading() {
   const [items, setItems] = useState<LawReadingItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [newLaw, setNewLaw] = useState('');
@@ -80,31 +82,30 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   const [confirmClear, setConfirmClear] = useState(false);
   const [importMinutes, setImportMinutes] = useState(15);
 
-  useEffect(() => setSelectedDate(initialDate), [initialDate]);
-
   const load = useCallback(async () => {
-    const dates = weekDates.map(toDateStr);
     const { data, error } = await supabase
       .from('law_readings')
       .select('*')
-      .in('date', dates)
-      .order('sort_order', { ascending: true });
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
     if (error) return;
     setItems(
       (data ?? []).map(r => ({
         id: r.id,
-        date: r.date,
         law: r.law,
         articles: r.articles,
         plannedMinutes: r.planned_minutes,
         readSeconds: r.read_seconds,
-        done: r.done,
+        status: (r.status as ReadingStatus) ?? 'pending',
         sortOrder: r.sort_order,
       })),
     );
-  }, [weekDates]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   // Local ticking timer, persisted every 15s and on stop
   useEffect(() => {
@@ -121,9 +122,6 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     return () => clearInterval(interval);
   }, [runningId]);
 
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-
   const stopTimer = async () => {
     if (!runningId) return;
     const current = itemsRef.current.find(i => i.id === runningId);
@@ -131,10 +129,10 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     if (current) await supabase.from('law_readings').update({ read_seconds: current.readSeconds }).eq('id', runningId);
   };
 
-  const dayItems = items.filter(i => i.date === selectedDate);
-  const totalPlanned = dayItems.reduce((s, i) => s + i.plannedMinutes, 0);
-  const totalRead = dayItems.reduce((s, i) => s + i.readSeconds, 0);
-  const pct = totalPlanned > 0 ? Math.min(100, (totalRead / (totalPlanned * 60)) * 100) : 0;
+  const totalPlanned = items.reduce((s, i) => s + i.plannedMinutes, 0);
+  const doneCount = items.filter(i => i.status === 'done').length;
+  const partialCount = items.filter(i => i.status === 'partial').length;
+  const pct = items.length > 0 ? ((doneCount + partialCount * 0.5) / items.length) * 100 : 0;
 
   const addItem = async () => {
     if (!newLaw.trim()) return;
@@ -142,11 +140,11 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     if (!auth.user) return;
     const { error } = await supabase.from('law_readings').insert({
       user_id: auth.user.id,
-      date: selectedDate,
+      date: '',
       law: newLaw.trim(),
       articles: newArticles.trim(),
       planned_minutes: Math.max(1, newMinutes),
-      sort_order: dayItems.length,
+      sort_order: items.length,
     });
     if (error) { toast({ title: 'Erro ao adicionar', variant: 'destructive' }); return; }
     setAdding(false);
@@ -154,9 +152,13 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     load();
   };
 
-  const toggleDone = async (item: LawReadingItem) => {
-    setItems(prev => prev.map(i => (i.id === item.id ? { ...i, done: !i.done } : i)));
-    await supabase.from('law_readings').update({ done: !item.done }).eq('id', item.id);
+  const setStatus = async (item: LawReadingItem, status: ReadingStatus) => {
+    setItems(prev => prev.map(i => (i.id === item.id ? { ...i, status } : i)));
+    const { error } = await supabase
+      .from('law_readings')
+      .update({ status, done: status === 'done' })
+      .eq('id', item.id);
+    if (error) { toast({ title: 'Erro ao atualizar', variant: 'destructive' }); load(); }
   };
 
   const removeItem = async (id: string) => {
@@ -166,16 +168,16 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
   };
 
   const clearAll = async () => {
-    const dates = weekDates.map(toDateStr);
+    const ids = items.map(i => i.id);
     setRunningId(null);
     setItems([]);
     setConfirmClear(false);
-    const { error } = await supabase.from('law_readings').delete().in('date', dates);
+    const { error } = await supabase.from('law_readings').delete().in('id', ids);
     if (error) {
       toast({ title: 'Erro ao limpar', variant: 'destructive' });
       load();
     } else {
-      toast({ title: 'Leituras removidas', description: `${dates.length} dias limpos.` });
+      toast({ title: 'Metas removidas', description: `${ids.length} leituras apagadas.` });
     }
   };
 
@@ -202,12 +204,6 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
     if (error) { toast({ title: 'Erro ao salvar', variant: 'destructive' }); load(); }
   };
 
-  const completePlanned = async (item: LawReadingItem) => {
-    const seconds = item.plannedMinutes * 60;
-    setItems(prev => prev.map(i => (i.id === item.id ? { ...i, readSeconds: seconds, done: true } : i)));
-    await supabase.from('law_readings').update({ read_seconds: seconds, done: true }).eq('id', item.id);
-  };
-
   const handleFile = async (file: File) => {
     setUploading(true);
     try {
@@ -227,29 +223,23 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
         try { detail = ((await (error as any).context?.json?.()) ?? {})?.error ?? ''; } catch { /* ignore */ }
         throw new Error(detail || error.message);
       }
-      const parsed: { law: string; articles: string; plannedMinutes: number; day?: number | null }[] = data?.items ?? [];
+      const parsed: { law: string; articles: string; plannedMinutes: number }[] = data?.items ?? [];
       if (!parsed.length) { toast({ title: 'Nenhum item encontrado no roteiro', variant: 'destructive' }); return; }
 
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return;
-      const start = new Date(`${selectedDate}T12:00:00`);
       const minutes = Math.max(1, Math.round(importMinutes || 15));
-      const rows = parsed.map((p, idx) => {
-        const dayIdx = (p.day ?? idx + 1) - 1;
-        const d = new Date(start);
-        d.setDate(start.getDate() + Math.max(0, dayIdx));
-        return {
-          user_id: auth.user!.id,
-          date: toDateStr(d),
-          law: p.law,
-          articles: p.articles ?? '',
-          planned_minutes: minutes,
-          sort_order: idx,
-        };
-      });
+      const rows = parsed.map((p, idx) => ({
+        user_id: auth.user!.id,
+        date: '',
+        law: p.law,
+        articles: p.articles ?? '',
+        planned_minutes: minutes,
+        sort_order: items.length + idx,
+      }));
       const { error: insErr } = await supabase.from('law_readings').insert(rows);
       if (insErr) throw insErr;
-      toast({ title: `${rows.length} leituras importadas`, description: 'Distribuídas a partir do dia selecionado.' });
+      toast({ title: `${rows.length} metas importadas` });
       load();
     } catch (e: any) {
       toast({ title: 'Não consegui importar o roteiro', description: e?.message ?? '', variant: 'destructive' });
@@ -261,11 +251,11 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
 
   return (
     <div className="mt-6 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Scale className="h-4 w-4 text-primary" /> Lei seca — leitura do dia
+          <Scale className="h-4 w-4 text-primary" /> Lei seca — metas de leitura
         </h2>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <input
             ref={fileRef}
             type="file"
@@ -279,10 +269,10 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
               min={1}
               value={importMinutes}
               onChange={e => setImportMinutes(Number(e.target.value))}
-              title="Minutos previstos por dia (usado na importação)"
+              title="Minutos previstos por meta (usado na importação)"
               className="h-8 w-14 rounded-md border border-border bg-background px-1.5 text-xs"
             />
-            <span className="text-xs text-muted-foreground">min/dia</span>
+            <span className="text-xs text-muted-foreground">min/meta</span>
           </div>
           <Button variant="ghost" size="sm" className="text-xs" disabled={uploading} onClick={() => fileRef.current?.click()}>
             {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
@@ -303,92 +293,73 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
         </div>
       </div>
 
-      {/* Day selector */}
-      <div className="flex gap-1 overflow-x-auto pb-2">
-        {weekDates.map((d, i) => {
-          const ds = toDateStr(d);
-          const count = items.filter(it => it.date === ds).length;
-          const active = ds === selectedDate;
-          return (
-            <button
-              key={ds}
-              onClick={() => setSelectedDate(ds)}
-              className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-accent'
-              }`}
-            >
-              {DAY_LABELS[i]} {String(d.getDate()).padStart(2, '0')}
-              {count > 0 && <span className="ml-1 opacity-80">({count})</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      {totalPlanned > 0 && (
-        <div className="mt-2 mb-3">
+      {items.length > 0 && (
+        <div className="mb-3">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>{fmt(totalRead)} lidos</span>
+            <span>{doneCount} concluídas · {partialCount} parciais · {items.length} metas</span>
             <span>{totalPlanned}min previstos</span>
           </div>
           <Progress value={pct} className="h-1.5" />
         </div>
       )}
 
-      {dayItems.length === 0 ? (
+      {items.length === 0 ? (
         <p className="py-4 text-center text-xs text-muted-foreground">
-          Nenhuma leitura para este dia. Adicione manualmente ou importe um roteiro.
+          Nenhuma meta de leitura. Adicione manualmente ou importe um roteiro.
         </p>
       ) : (
         <ul className="space-y-2">
-          {dayItems.map(item => (
-            <li key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
-              <Checkbox checked={item.done} onCheckedChange={() => toggleDone(item)} />
-              <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm font-medium ${item.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                  {item.law}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {item.articles || 'Sem artigos definidos'} · {fmt(item.readSeconds)} /{' '}
-                  <button
-                    type="button"
-                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-                    title="Alterar tempo previsto"
-                    onClick={() => openEdit(item)}
-                  >
-                    {item.plannedMinutes}min
-                  </button>
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                title={runningId === item.id ? 'Pausar leitura' : 'Cronometrar leitura'}
-                onClick={() => (runningId === item.id ? stopTimer() : (stopTimer(), setRunningId(item.id)))}
-              >
-                {runningId === item.id ? <Pause className="h-4 w-4 text-primary" /> : <Play className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                title={`Cumpri os ${item.plannedMinutes}min previstos`}
-                onClick={() => completePlanned(item)}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </li>
-          ))}
+          {items.map(item => {
+            const meta = STATUS_META[item.status];
+            const StatusIcon = meta.icon;
+            return (
+              <li key={item.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
+                <button
+                  type="button"
+                  title={`${meta.label} — toque para alternar`}
+                  onClick={() => setStatus(item, NEXT_STATUS[item.status])}
+                  className={`shrink-0 ${meta.className}`}
+                >
+                  <StatusIcon className="h-5 w-5" />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-sm font-medium ${item.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                    {item.law}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {item.articles || 'Sem artigos definidos'} · {meta.label} · {fmt(item.readSeconds)} /{' '}
+                    <button
+                      type="button"
+                      className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                      title="Alterar lei, artigos e tempo previsto"
+                      onClick={() => openEdit(item)}
+                    >
+                      {item.plannedMinutes}min
+                    </button>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  title={runningId === item.id ? 'Pausar leitura' : 'Cronometrar leitura'}
+                  onClick={() => (runningId === item.id ? stopTimer() : (stopTimer(), setRunningId(item.id)))}
+                >
+                  {runningId === item.id ? <Pause className="h-4 w-4 text-primary" /> : <Play className="h-4 w-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       <Dialog open={!!editItem} onOpenChange={o => !o && setEditItem(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar leitura</DialogTitle>
+            <DialogTitle>Editar meta de leitura</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -411,7 +382,7 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Nova leitura de lei seca</DialogTitle>
+            <DialogTitle>Nova meta de lei seca</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -434,9 +405,9 @@ export default function LawReading({ weekDates }: { weekDates: Date[] }) {
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent className="sm:max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Limpar todas as leituras?</AlertDialogTitle>
+            <AlertDialogTitle>Limpar todas as metas?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso vai apagar as leituras de lei seca de todos os {weekDates.length} dias da semana exibida. Não dá para desfazer.
+              Isso vai apagar todas as {items.length} metas de leitura de lei seca. Não dá para desfazer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
