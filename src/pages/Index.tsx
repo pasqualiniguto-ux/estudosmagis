@@ -407,7 +407,7 @@ export default function Index() {
           })}
         </div>
 
-        <LawReading weekDates={weekDates} />
+        <LawReading />
 
         <ExamReminders />
       </main>
