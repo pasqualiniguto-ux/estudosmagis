@@ -169,16 +169,18 @@ export default function LawReading() {
   };
 
   const clearAll = async () => {
-    const ids = items.map(i => i.id);
+    const count = items.length;
     setRunningId(null);
-    setItems([]);
     setConfirmClear(false);
-    const { error } = await supabase.from('law_readings').delete().in('id', ids);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) { toast({ title: 'Sessão expirada', variant: 'destructive' }); return; }
+    setItems([]);
+    const { error } = await supabase.from('law_readings').delete().eq('user_id', auth.user.id);
     if (error) {
-      toast({ title: 'Erro ao limpar', variant: 'destructive' });
+      toast({ title: 'Erro ao limpar', description: error.message, variant: 'destructive' });
       load();
     } else {
-      toast({ title: 'Metas removidas', description: `${ids.length} leituras apagadas.` });
+      toast({ title: 'Metas removidas', description: `${count} leituras apagadas.` });
     }
   };
 
