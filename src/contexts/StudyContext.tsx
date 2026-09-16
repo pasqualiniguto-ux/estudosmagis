@@ -596,10 +596,14 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     if (nextIndex === 0 && cycleEntries.length > 0) {
       newCompleted = completedCyclesCount + 1;
       setCompletedCyclesCountState(newCompleted);
+      // Restarting the cycle: reset the accumulated time of every cycle item
+      const cycleIds = cycleEntries.map(e => e.id);
+      setDailyProgress(prev => prev.filter(p => !cycleIds.includes(p.entryId)));
+      await supabase.from('daily_progress').delete().eq('user_id', user.id).in('entry_id', cycleIds);
     }
     setActiveCycleIndex(nextIndex);
     await saveSettings(nextIndex, newCompleted);
-  }, [user, cycleEntries.length, activeCycleIndex, completedCyclesCount]);
+  }, [user, cycleEntries, activeCycleIndex, completedCyclesCount]);
 
   const regressCycle = useCallback(async () => {
     if (!user || cycleEntries.length === 0) return;
