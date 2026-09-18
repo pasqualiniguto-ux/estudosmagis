@@ -3,7 +3,6 @@ import AppNavigation from '@/components/AppNavigation';
 import QuickNotes from '@/components/QuickNotes';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
-import LawReading from '@/components/LawReading';
 import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry } from '@/types/study';
 import { Button } from '@/components/ui/button';
@@ -406,8 +405,6 @@ export default function Index() {
             );
           })}
         </div>
-
-        <LawReading />
 
         <ExamReminders />
       </main>
