@@ -12,6 +12,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Cycle from "./pages/Cycle";
 import Notes from "./pages/Notes";
+import LawReadingPage from "./pages/LawReadingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/ciclo" element={<ProtectedRoute><Cycle /></ProtectedRoute>} />
               <Route path="/materias" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
               <Route path="/caderno" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+              <Route path="/lei-seca" element={<ProtectedRoute><LawReadingPage /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
