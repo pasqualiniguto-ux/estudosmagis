@@ -82,10 +82,8 @@ export default function StudyStreak() {
     return { days, currentStreak, gapDays, record };
   }, [studyLogs, dailyProgress]);
 
-  const hasData = dailyProgress.length > 0 || studyLogs.length > 0;
-
   return (
-    <div className="w-full bg-card border border-border rounded-xl px-4 py-3 space-y-2">
+    <div className="w-full bg-card border border-border rounded-xl px-4 py-3">
       {/* Dot timeline */}
       <div className="flex items-center gap-[3px]">
         {days.map((day) => (
@@ -104,28 +102,6 @@ export default function StudyStreak() {
           </div>
         ))}
       </div>
-
-      {/* Stats row */}
-      {hasData && (
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-          {currentStreak > 0 ? (
-            <span>
-              🔥 <span className="font-medium text-emerald-500">{currentStreak} {currentStreak === 1 ? 'dia' : 'dias'}</span> sem falhar
-            </span>
-          ) : gapDays > 0 ? (
-            <span>
-              ⚠️ <span className="font-medium text-red-400">{gapDays} {gapDays === 1 ? 'dia' : 'dias'}</span> sem estudar
-            </span>
-          ) : (
-            <span className="text-muted-foreground/60">Comece a estudar hoje!</span>
-          )}
-          {record > 0 && (
-            <span>
-              Recorde: <span className="font-medium text-foreground">{record} {record === 1 ? 'dia' : 'dias'}</span>
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
