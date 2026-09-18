@@ -7,7 +7,7 @@ const DAYS_TO_SHOW = 14;
 export default function StudyStreak() {
   const { studyLogs, dailyProgress } = useStudy();
 
-  const { days, currentStreak, gapDays, record } = useMemo(() => {
+  const days = useMemo(() => {
     const studiedDates = new Set<string>();
 
     dailyProgress.forEach(p => {
@@ -24,7 +24,6 @@ export default function StudyStreak() {
     today.setHours(0, 0, 0, 0);
     const todayStr = toDateStr(today);
 
-    // Build last N days
     const days: { date: string; label: string; status: 'studied' | 'missed' | 'today' }[] = [];
     for (let i = DAYS_TO_SHOW - 1; i >= 0; i--) {
       const d = new Date(today);
@@ -35,51 +34,7 @@ export default function StudyStreak() {
       days.push({ date: dateStr, label, status });
     }
 
-    // Current streak (consecutive days before today)
-    let currentStreak = 0;
-    const d = new Date(today);
-    d.setDate(d.getDate() - 1); // start from yesterday
-    while (true) {
-      if (studiedDates.has(toDateStr(d))) {
-        currentStreak++;
-        d.setDate(d.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    // Gap days (how many days since last study, 0 if studied yesterday)
-    let gapDays = 0;
-    if (currentStreak === 0) {
-      const g = new Date(today);
-      g.setDate(g.getDate() - 1);
-      while (!studiedDates.has(toDateStr(g)) && gapDays < 365) {
-        gapDays++;
-        g.setDate(g.getDate() - 1);
-      }
-      if (gapDays >= 365 && studiedDates.size === 0) gapDays = 0; // no data
-    }
-
-    // Record streak (all-time best)
-    let record = 0;
-    if (studiedDates.size > 0) {
-      const sorted = Array.from(studiedDates).sort();
-      let streak = 1;
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = new Date(sorted[i - 1] + 'T12:00:00');
-        const curr = new Date(sorted[i] + 'T12:00:00');
-        const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000);
-        if (diffDays === 1) {
-          streak++;
-        } else {
-          record = Math.max(record, streak);
-          streak = 1;
-        }
-      }
-      record = Math.max(record, streak);
-    }
-
-    return { days, currentStreak, gapDays, record };
+    return days;
   }, [studyLogs, dailyProgress]);
 
   return (
