@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash, Bookmark, Check, Pencil } from 'lucide-react';
-import StudyStreak from '@/components/StudyStreak';
 import { useStudyRecommendationEnabled } from '@/hooks/useStudyRecommendationEnabled';
 
 
@@ -219,9 +218,6 @@ export default function Index() {
       <QuickNotes />
       <main className="container py-6">
         <h1 className="text-2xl font-bold text-foreground mb-4">Planejamento Semanal</h1>
-        <div className="mb-5">
-          <StudyStreak />
-        </div>
 
         {/* Week Navigation */}
         <div className="flex items-center justify-between gap-3 mb-5">
