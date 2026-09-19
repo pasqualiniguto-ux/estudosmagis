@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare } from 'lucide-react';
-import StudyStreak from '@/components/StudyStreak';
 import FixedCycleItems from '@/components/FixedCycleItems';
 
 function fmtTime(seconds: number): string {
@@ -114,7 +113,6 @@ export default function Cycle() {
       <main className="container py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-foreground">Ciclo de Estudos</h1>
-          <StudyStreak />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
