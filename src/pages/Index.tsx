@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import AppNavigation from '@/components/AppNavigation';
 import QuickNotes from '@/components/QuickNotes';
+import DayTimes from '@/components/DayTimes';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
 import { useStudy } from '@/contexts/StudyContext';
