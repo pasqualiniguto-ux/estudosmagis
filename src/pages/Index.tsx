@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import AppNavigation from '@/components/AppNavigation';
 import QuickNotes from '@/components/QuickNotes';
+import DayTimes from '@/components/DayTimes';
 import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
 import { useStudy } from '@/contexts/StudyContext';
@@ -277,6 +278,9 @@ export default function Index() {
                 <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
                   {DAY_NAMES[i]} {fmtDateShort(dateObj)}
                 </h3>
+
+                <DayTimes dayOfWeek={i} dayLabel={DAY_NAMES_FULL[i]} />
+                
                 
                 <div className="space-y-2 flex-1">
                   {dayEntries.map(entry => {
