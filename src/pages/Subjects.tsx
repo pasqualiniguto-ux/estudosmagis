@@ -700,12 +700,17 @@ export default function Subjects() {
       </Dialog>
 
       {/* Add Topic Dialog */}
-      <Dialog open={!!addTopicSubjectId} onOpenChange={o => { if (!o) setAddTopicSubjectId(null); }}>
+      <Dialog open={!!addTopicSubjectId} onOpenChange={o => { if (!o) { setAddTopicSubjectId(null); setAddTopicParent(null); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo assunto</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{addTopicParent ? 'Novo subassunto' : 'Novo assunto'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {addTopicParent && (
+              <p className="text-sm text-muted-foreground">
+                Dentro de: <span className="text-foreground font-medium">{addTopicParent.name}</span>
+              </p>
+            )}
             <p className="text-sm text-muted-foreground mb-1">
-              Cole ou digite um assunto por linha. Cada linha será transformada num assunto isolado.
+              Cole ou digite um {addTopicParent ? 'subassunto' : 'assunto'} por linha. Cada linha será um item separado.
             </p>
             <Textarea 
               placeholder="Digite o nome do assunto..." 
