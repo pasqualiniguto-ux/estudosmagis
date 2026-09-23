@@ -16,6 +16,7 @@ export interface Topic {
   pdfUrl?: string;
   webUrl?: string;
   lastReadAt?: string; // ISO timestamp of last manual read/review mark
+  parentId?: string; // subtópico: id do assunto pai
 }
 
 export interface ScheduleEntry {

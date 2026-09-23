@@ -26,6 +26,30 @@ function PercentageBadge({ percentage }: { percentage: number }) {
   return <span className={`text-xs font-bold ${colorClass}`}>{pct}%</span>;
 }
 
+// Organiza os assuntos em árvore (assuntos e subassuntos), respeitando a ordem salva
+function buildTopicTree<T extends { id: string; parentId?: string }>(
+  topics: T[],
+  collapsed: Record<string, boolean>
+): { topic: T; depth: number; hasChildren: boolean }[] {
+  const byParent = new Map<string, T[]>();
+  topics.forEach(t => {
+    const key = t.parentId && topics.some(o => o.id === t.parentId) ? t.parentId : 'root';
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(t);
+  });
+  const out: { topic: T; depth: number; hasChildren: boolean }[] = [];
+  const walk = (key: string, depth: number) => {
+    (byParent.get(key) || []).forEach(t => {
+      const children = byParent.get(t.id) || [];
+      out.push({ topic: t, depth, hasChildren: children.length > 0 });
+      if (children.length > 0 && !collapsed[t.id]) walk(t.id, depth + 1);
+    });
+  };
+  walk('root', 0);
+  return out;
+}
+
+
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -51,7 +75,9 @@ export default function Subjects() {
   }, [topicsView]);
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
+  const [addTopicParent, setAddTopicParent] = useState<{ id: string; name: string } | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
+  const [collapsedTopics, setCollapsedTopics] = useState<Record<string, boolean>>({});
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -97,10 +123,11 @@ export default function Subjects() {
     
     // Divide o texto por quebras de linha e adiciona cada linha não vazia como um novo assunto
     const lines = newTopicName.split('\n').map(t => t.trim()).filter(t => t.length > 0);
-    lines.forEach(line => addTopic(addTopicSubjectId, line));
+    lines.forEach(line => addTopic(addTopicSubjectId, line, undefined, undefined, addTopicParent?.id));
 
     setNewTopicName('');
     setAddTopicSubjectId(null);
+    setAddTopicParent(null);
   };
 
   const handleManualTopicLog = () => {
@@ -351,7 +378,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={e => { e.stopPropagation(); setAddTopicSubjectId(subject.id); setNewTopicName(''); }}
+                    onClick={e => { e.stopPropagation(); setAddTopicSubjectId(subject.id); setAddTopicParent(null); setNewTopicName(''); }}
                     title="Adicionar assunto"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -371,7 +398,8 @@ export default function Subjects() {
                     {subject.topics.length === 0 && (
                       <p className="text-xs text-muted-foreground p-3">Nenhum assunto cadastrado.</p>
                     )}
-                    {subject.topics.map((topic, topicIdx) => {
+                    {buildTopicTree(subject.topics, collapsedTopics).map(({ topic, depth, hasChildren }) => {
+                      const topicIdx = subject.topics.findIndex(t => t.id === topic.id);
                       const stats = getTopicStats(topic.id);
                       const topicLogs = studyLogs.filter(l => l.topicId === topic.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
                       const lastLog = topicLogs.length > 0 ? topicLogs.sort((a, b) => b.date.localeCompare(a.date))[0] : null;
@@ -410,7 +438,8 @@ export default function Subjects() {
                             setDragTopic(null); setDragOverTopicId(null);
                           }}
                           onDragEnd={() => { setDragTopic(null); setDragOverTopicId(null); }}
-                          className={`flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
+                          style={{ paddingLeft: 16 + depth * 22 }}
+                          className={`flex items-center gap-2 pr-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${depth > 0 ? 'bg-muted/10' : ''} ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
                         >
                           <div className="flex items-center gap-0.5">
                             <Button
@@ -435,7 +464,28 @@ export default function Subjects() {
                             </Button>
                           </div>
                           <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing flex-shrink-0" />
-                          <span className="text-sm text-foreground flex-1">{topic.name}</span>
+                          {hasChildren ? (
+                            <button
+                              className="text-muted-foreground hover:text-primary flex-shrink-0"
+                              onClick={() => setCollapsedTopics(prev => ({ ...prev, [topic.id]: !prev[topic.id] }))}
+                              title={collapsedTopics[topic.id] ? 'Mostrar subassuntos' : 'Recolher subassuntos'}
+                            >
+                              {collapsedTopics[topic.id] ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                          ) : (
+                            <span className="w-3.5 flex-shrink-0" />
+                          )}
+                          <span className={`text-sm flex-1 ${depth > 0 ? 'text-muted-foreground' : 'text-foreground'}`}>{topic.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => { setAddTopicSubjectId(subject.id); setAddTopicParent({ id: topic.id, name: topic.name }); setNewTopicName(''); }}
+                            title="Adicionar subassunto"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+
 
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -650,12 +700,17 @@ export default function Subjects() {
       </Dialog>
 
       {/* Add Topic Dialog */}
-      <Dialog open={!!addTopicSubjectId} onOpenChange={o => { if (!o) setAddTopicSubjectId(null); }}>
+      <Dialog open={!!addTopicSubjectId} onOpenChange={o => { if (!o) { setAddTopicSubjectId(null); setAddTopicParent(null); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo assunto</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{addTopicParent ? 'Novo subassunto' : 'Novo assunto'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {addTopicParent && (
+              <p className="text-sm text-muted-foreground">
+                Dentro de: <span className="text-foreground font-medium">{addTopicParent.name}</span>
+              </p>
+            )}
             <p className="text-sm text-muted-foreground mb-1">
-              Cole ou digite um assunto por linha. Cada linha será transformada num assunto isolado.
+              Cole ou digite um {addTopicParent ? 'subassunto' : 'assunto'} por linha. Cada linha será um item separado.
             </p>
             <Textarea 
               placeholder="Digite o nome do assunto..." 

@@ -30,7 +30,7 @@ interface StudyContextType {
   addSubject: (name: string, color?: string, category?: 'specific' | 'general') => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
-  addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
+  addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string, parentId?: string) => void;
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
   markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
@@ -265,6 +265,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         pdfUrl: t.pdf_url || undefined,
         webUrl: t.web_url || undefined,
         lastReadAt: t.last_read_at || undefined,
+        parentId: t.parent_id || undefined,
       });
     });
 
@@ -384,7 +385,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setCycleEntries(prev => prev.filter(e => e.subjectId !== id));
   }, [user]);
 
-  const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
+  const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string, parentId?: string) => {
     if (!user) return;
     // Consultar o maior sort_order atual no banco para evitar duplicatas quando
     // vários assuntos são adicionados em sequência (loop sem await entre estados).
@@ -398,16 +399,17 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     const nextOrder = ((maxRow as any)?.sort_order ?? -1) + 1;
     const { data } = await supabase.from('topics').insert({
       subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null,
-      sort_order: nextOrder,
+      sort_order: nextOrder, parent_id: parentId || null,
     } as any).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
         s.id === subjectId
-          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl }] }
+          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl, parentId }] }
           : s
       ));
     }
   }, [user]);
+
 
   const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
     if (!user) return;
@@ -442,11 +444,22 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const removeTopic = useCallback(async (subjectId: string, topicId: string) => {
     if (!user) return;
     await supabase.from('topics').delete().eq('id', topicId);
-    setSubjects(prev => prev.map(s =>
-      s.id === subjectId
-        ? { ...s, topics: s.topics.filter(t => t.id !== topicId) }
-        : s
-    ));
+    setSubjects(prev => prev.map(s => {
+      if (s.id !== subjectId) return s;
+      // remove o assunto e todos os seus subassuntos (o banco apaga em cascata)
+      const toRemove = new Set([topicId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        s.topics.forEach(t => {
+          if (t.parentId && toRemove.has(t.parentId) && !toRemove.has(t.id)) {
+            toRemove.add(t.id);
+            changed = true;
+          }
+        });
+      }
+      return { ...s, topics: s.topics.filter(t => !toRemove.has(t.id)) };
+    }));
   }, [user]);
 
   const reorderTopic = useCallback(async (subjectId: string, topicId: string, direction: 'up' | 'down') => {
