@@ -385,7 +385,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     setCycleEntries(prev => prev.filter(e => e.subjectId !== id));
   }, [user]);
 
-  const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string) => {
+  const addTopic = useCallback(async (subjectId: string, name: string, pdfUrl?: string, webUrl?: string, parentId?: string) => {
     if (!user) return;
     // Consultar o maior sort_order atual no banco para evitar duplicatas quando
     // vários assuntos são adicionados em sequência (loop sem await entre estados).
@@ -399,16 +399,17 @@ export function StudyProvider({ children }: { children: ReactNode }) {
     const nextOrder = ((maxRow as any)?.sort_order ?? -1) + 1;
     const { data } = await supabase.from('topics').insert({
       subject_id: subjectId, user_id: user.id, name, pdf_url: pdfUrl || null, web_url: webUrl || null,
-      sort_order: nextOrder,
+      sort_order: nextOrder, parent_id: parentId || null,
     } as any).select('id').single();
     if (data) {
       setSubjects(prev => prev.map(s =>
         s.id === subjectId
-          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl }] }
+          ? { ...s, topics: [...s.topics, { id: data.id, name, pdfUrl, webUrl, parentId }] }
           : s
       ));
     }
   }, [user]);
+
 
   const updateTopic = useCallback(async (subjectId: string, topicId: string, updates: Partial<Topic>) => {
     if (!user) return;
