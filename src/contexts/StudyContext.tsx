@@ -30,7 +30,7 @@ interface StudyContextType {
   addSubject: (name: string, color?: string, category?: 'specific' | 'general') => void;
   updateSubject: (id: string, updates: Partial<Subject>) => void;
   removeSubject: (id: string) => void;
-  addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string) => void;
+  addTopic: (subject_id: string, name: string, pdfUrl?: string, webUrl?: string, parentId?: string) => void;
   updateTopic: (subjectId: string, topicId: string, updates: Partial<Topic>) => void;
   removeTopic: (subjectId: string, topicId: string) => void;
   markTopicAsRead: (subjectId: string, topicId: string) => Promise<void>;
