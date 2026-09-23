@@ -51,7 +51,9 @@ export default function Subjects() {
   }, [topicsView]);
 
   const [addTopicSubjectId, setAddTopicSubjectId] = useState<string | null>(null);
+  const [addTopicParent, setAddTopicParent] = useState<{ id: string; name: string } | null>(null);
   const [newTopicName, setNewTopicName] = useState('');
+  const [collapsedTopics, setCollapsedTopics] = useState<Record<string, boolean>>({});
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
