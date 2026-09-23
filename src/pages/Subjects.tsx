@@ -398,7 +398,8 @@ export default function Subjects() {
                     {subject.topics.length === 0 && (
                       <p className="text-xs text-muted-foreground p-3">Nenhum assunto cadastrado.</p>
                     )}
-                    {subject.topics.map((topic, topicIdx) => {
+                    {buildTopicTree(subject.topics, collapsedTopics).map(({ topic, depth, hasChildren }) => {
+                      const topicIdx = subject.topics.findIndex(t => t.id === topic.id);
                       const stats = getTopicStats(topic.id);
                       const topicLogs = studyLogs.filter(l => l.topicId === topic.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
                       const lastLog = topicLogs.length > 0 ? topicLogs.sort((a, b) => b.date.localeCompare(a.date))[0] : null;
