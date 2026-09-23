@@ -378,7 +378,7 @@ export default function Subjects() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={e => { e.stopPropagation(); setAddTopicSubjectId(subject.id); setNewTopicName(''); }}
+                    onClick={e => { e.stopPropagation(); setAddTopicSubjectId(subject.id); setAddTopicParent(null); setNewTopicName(''); }}
                     title="Adicionar assunto"
                   >
                     <Plus className="h-3.5 w-3.5" />
