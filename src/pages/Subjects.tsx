@@ -438,7 +438,8 @@ export default function Subjects() {
                             setDragTopic(null); setDragOverTopicId(null);
                           }}
                           onDragEnd={() => { setDragTopic(null); setDragOverTopicId(null); }}
-                          className={`flex items-center gap-2 px-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
+                          style={{ paddingLeft: 16 + depth * 22 }}
+                          className={`flex items-center gap-2 pr-4 py-2.5 border-b border-border/50 last:border-b-0 hover:bg-muted/20 transition-colors ${depth > 0 ? 'bg-muted/10' : ''} ${isDragOver ? 'bg-primary/10 border-t-2 border-t-primary' : ''} ${dragTopic?.topicId === topic.id ? 'opacity-40' : ''}`}
                         >
                           <div className="flex items-center gap-0.5">
                             <Button
@@ -463,7 +464,28 @@ export default function Subjects() {
                             </Button>
                           </div>
                           <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 cursor-grab active:cursor-grabbing flex-shrink-0" />
-                          <span className="text-sm text-foreground flex-1">{topic.name}</span>
+                          {hasChildren ? (
+                            <button
+                              className="text-muted-foreground hover:text-primary flex-shrink-0"
+                              onClick={() => setCollapsedTopics(prev => ({ ...prev, [topic.id]: !prev[topic.id] }))}
+                              title={collapsedTopics[topic.id] ? 'Mostrar subassuntos' : 'Recolher subassuntos'}
+                            >
+                              {collapsedTopics[topic.id] ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </button>
+                          ) : (
+                            <span className="w-3.5 flex-shrink-0" />
+                          )}
+                          <span className={`text-sm flex-1 ${depth > 0 ? 'text-muted-foreground' : 'text-foreground'}`}>{topic.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => { setAddTopicSubjectId(subject.id); setAddTopicParent({ id: topic.id, name: topic.name }); setNewTopicName(''); }}
+                            title="Adicionar subassunto"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+
 
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
