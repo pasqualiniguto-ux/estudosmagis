@@ -443,6 +443,7 @@ export type Database = {
           id: string
           last_read_at: string | null
           name: string
+          parent_id: string | null
           pdf_url: string | null
           sort_order: number
           subject_id: string
@@ -454,6 +455,7 @@ export type Database = {
           id?: string
           last_read_at?: string | null
           name: string
+          parent_id?: string | null
           pdf_url?: string | null
           sort_order?: number
           subject_id: string
@@ -465,6 +467,7 @@ export type Database = {
           id?: string
           last_read_at?: string | null
           name?: string
+          parent_id?: string | null
           pdf_url?: string | null
           sort_order?: number
           subject_id?: string
@@ -472,6 +475,13 @@ export type Database = {
           web_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "topics_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "topics_subject_id_fkey"
             columns: ["subject_id"]
