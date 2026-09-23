@@ -444,11 +444,22 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   const removeTopic = useCallback(async (subjectId: string, topicId: string) => {
     if (!user) return;
     await supabase.from('topics').delete().eq('id', topicId);
-    setSubjects(prev => prev.map(s =>
-      s.id === subjectId
-        ? { ...s, topics: s.topics.filter(t => t.id !== topicId) }
-        : s
-    ));
+    setSubjects(prev => prev.map(s => {
+      if (s.id !== subjectId) return s;
+      // remove o assunto e todos os seus subassuntos (o banco apaga em cascata)
+      const toRemove = new Set([topicId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        s.topics.forEach(t => {
+          if (t.parentId && toRemove.has(t.parentId) && !toRemove.has(t.id)) {
+            toRemove.add(t.id);
+            changed = true;
+          }
+        });
+      }
+      return { ...s, topics: s.topics.filter(t => !toRemove.has(t.id)) };
+    }));
   }, [user]);
 
   const reorderTopic = useCallback(async (subjectId: string, topicId: string, direction: 'up' | 'down') => {
