@@ -26,6 +26,30 @@ function PercentageBadge({ percentage }: { percentage: number }) {
   return <span className={`text-xs font-bold ${colorClass}`}>{pct}%</span>;
 }
 
+// Organiza os assuntos em árvore (assuntos e subassuntos), respeitando a ordem salva
+function buildTopicTree<T extends { id: string; parentId?: string }>(
+  topics: T[],
+  collapsed: Record<string, boolean>
+): { topic: T; depth: number; hasChildren: boolean }[] {
+  const byParent = new Map<string, T[]>();
+  topics.forEach(t => {
+    const key = t.parentId && topics.some(o => o.id === t.parentId) ? t.parentId : 'root';
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(t);
+  });
+  const out: { topic: T; depth: number; hasChildren: boolean }[] = [];
+  const walk = (key: string, depth: number) => {
+    (byParent.get(key) || []).forEach(t => {
+      const children = byParent.get(t.id) || [];
+      out.push({ topic: t, depth, hasChildren: children.length > 0 });
+      if (children.length > 0 && !collapsed[t.id]) walk(t.id, depth + 1);
+    });
+  };
+  walk('root', 0);
+  return out;
+}
+
+
 export default function Subjects() {
   const { user } = useAuth();
   const { toast } = useToast();
