@@ -99,10 +99,11 @@ export default function Subjects() {
     
     // Divide o texto por quebras de linha e adiciona cada linha não vazia como um novo assunto
     const lines = newTopicName.split('\n').map(t => t.trim()).filter(t => t.length > 0);
-    lines.forEach(line => addTopic(addTopicSubjectId, line));
+    lines.forEach(line => addTopic(addTopicSubjectId, line, undefined, undefined, addTopicParent?.id));
 
     setNewTopicName('');
     setAddTopicSubjectId(null);
+    setAddTopicParent(null);
   };
 
   const handleManualTopicLog = () => {
