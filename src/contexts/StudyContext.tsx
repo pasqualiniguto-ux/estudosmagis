@@ -265,6 +265,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
         pdfUrl: t.pdf_url || undefined,
         webUrl: t.web_url || undefined,
         lastReadAt: t.last_read_at || undefined,
+        parentId: t.parent_id || undefined,
       });
     });
 
