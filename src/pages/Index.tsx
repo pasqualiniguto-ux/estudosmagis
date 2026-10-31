@@ -8,6 +8,7 @@ import { useStudy } from '@/contexts/StudyContext';
 import { ScheduleEntry } from '@/types/study';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -371,9 +372,12 @@ export default function Index() {
                           );
                         })()}
                         {entry.notes && (
-                          <p className="text-[9px] text-muted-foreground mb-1.5 italic truncate" title={entry.notes}>
-                            📝 {entry.notes}
-                          </p>
+                          <div className="my-3 border-t border-border pt-2">
+                            <span className="text-xs font-semibold text-foreground">Observações</span>
+                            <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground [overflow-wrap:anywhere]">
+                              {entry.notes}
+                            </p>
+                          </div>
                         )}
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-primary/10" onClick={() => setTimerEntry({ entry, date: dateStr })} title="Cronômetro">
@@ -385,10 +389,11 @@ export default function Index() {
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setLogState({ entry, date: dateStr }); resetLogForm(); }} title="Registrar estudo">
                             <ClipboardList className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setNoteEntry(entry); setNoteText(entry.notes || ''); }} title="Observação">
-                            <StickyNote className="h-3 w-3" />
-                          </Button>
                         </div>
+                        <Button variant="outline" size="sm" className="mt-2 h-auto min-h-8 w-full gap-1.5 px-2 py-1.5 text-xs whitespace-normal" onClick={() => { setNoteEntry(entry); setNoteText(entry.notes || ''); }}>
+                          <StickyNote className="h-3.5 w-3.5 shrink-0" />
+                          {entry.notes ? 'Editar observações' : 'Adicionar observações'}
+                        </Button>
                       </div>
                     );
                   })}
@@ -555,13 +560,17 @@ export default function Index() {
 
       {/* Entry Notes Dialog */}
       <Dialog open={!!noteEntry} onOpenChange={o => { if (!o) setNoteEntry(null); }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Observação</DialogTitle>
+            <DialogTitle>Observações — {subjects.find(s => s.id === noteEntry?.subjectId)?.name || 'Matéria'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <Input
-              placeholder="Ex: Revisar capítulo 3, focar em exercícios..."
+            <Label htmlFor="schedule-observations">Observações</Label>
+            <Textarea
+              id="schedule-observations"
+              className="min-h-72 max-h-[55dvh] resize-y text-base leading-relaxed sm:text-sm"
+              rows={12}
+              placeholder="Assuntos, páginas, exercícios, dúvidas e outras anotações..."
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
             />
