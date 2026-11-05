@@ -42,6 +42,7 @@ interface StudyContextType {
   removeScheduleEntry: (id: string) => void;
   clearSchedule: () => void;
   addCycleEntry: (subjectId: string, plannedMinutes: number) => void;
+  updateCycleObservations: (id: string, notes: string) => Promise<void>;
   removeCycleEntry: (id: string) => void;
   reorderCycleEntries: (startIndex: number, endIndex: number) => void;
   advanceCycle: () => void;
@@ -294,6 +295,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       subjectId: e.subject_id,
       plannedMinutes: e.planned_minutes,
       order: e.sort_order,
+      notes: e.notes || '',
     })));
 
     setDailyProgress((progressRes.data || []).map((p: any) => ({
@@ -570,6 +572,13 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       setCycleEntries(prev => [...prev, { id: data.id, subjectId, plannedMinutes, order }]);
     }
   }, [user, cycleEntries.length]);
+
+  const updateCycleObservations = useCallback(async (id: string, notes: string) => {
+    if (!user) throw new Error('Entre na sua conta para salvar as observações.');
+    const { error } = await supabase.from('cycle_entries').update({ notes }).eq('id', id).eq('user_id', user.id);
+    if (error) throw error;
+    setCycleEntries(prev => prev.map(entry => entry.id === id ? { ...entry, notes } : entry));
+  }, [user]);
 
   const removeCycleEntry = useCallback(async (id: string) => {
     if (!user) return;
@@ -923,7 +932,7 @@ export function StudyProvider({ children }: { children: ReactNode }) {
       noteFont, noteSize, setNoteFont, setNoteSize,
       addSubject, updateSubject, removeSubject, addTopic, updateTopic, removeTopic, markTopicAsRead, clearTopicLastRead, reorderTopic, moveTopicToIndex,
       addScheduleEntry, updateScheduleEntry, removeScheduleEntry, clearSchedule, addStudiedTime,
-      addCycleEntry, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
+      addCycleEntry, updateCycleObservations, removeCycleEntry, reorderCycleEntries, advanceCycle, regressCycle, setCompletedCyclesCount,
       getProgressForEntry, getTotalProgressForEntry, getEntriesForDate,
       addStudyLog, updateStudyLog, removeStudyLog, getTopicStats, getSubjectStats,
       addExam, removeExam, updateExam,

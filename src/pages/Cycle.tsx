@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare, StickyNote } from 'lucide-react';
 import FixedCycleItems from '@/components/FixedCycleItems';
 
 function fmtTime(seconds: number): string {
@@ -31,7 +32,26 @@ function fmtPlanned(minutes: number): string {
 import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Cycle() {
-  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, removeStudyLog, addCycleEntry, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, getTotalProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, removeStudyLog, addCycleEntry, updateCycleObservations, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, getTotalProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
+
+  const [noteEntry, setNoteEntry] = useState<CycleEntry | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [noteError, setNoteError] = useState('');
+
+  const saveObservations = async (text: string) => {
+    if (!noteEntry || savingNotes) return;
+    setSavingNotes(true);
+    setNoteError('');
+    try {
+      await updateCycleObservations(noteEntry.id, text);
+      setNoteEntry(null);
+    } catch {
+      setNoteError('Não foi possível salvar as observações. Tente novamente.');
+    } finally {
+      setSavingNotes(false);
+    }
+  };
 
   // Observation editor
   const [editObsLog, setEditObsLog] = useState<{ id: string; topicName: string; notes: string } | null>(null);
@@ -214,7 +234,7 @@ export default function Cycle() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-2 sm:mt-0 justify-end">
+                        <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 justify-end">
                           <Button variant="outline" size="icon" className="h-8 w-8 text-primary" onClick={() => setTimerEntry(entry)} title="Cronômetro">
                             <Play className="h-4 w-4" />
                           </Button>
@@ -253,6 +273,23 @@ export default function Cycle() {
                           </Button>
                         </div>
                       </div>
+
+                      {entry.notes && (
+                        <div className="border-t border-border pt-3">
+                          <span className="text-sm font-semibold text-foreground">Observações</span>
+                          <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">
+                            {entry.notes}
+                          </p>
+                        </div>
+                      )}
+                      <Button variant="outline" size="sm" className="h-auto min-h-9 w-full gap-1.5 py-2 whitespace-normal" onClick={() => {
+                        setNoteEntry(entry);
+                        setNoteText(entry.notes || '');
+                        setNoteError('');
+                      }}>
+                        <StickyNote className="h-4 w-4 shrink-0" />
+                        {entry.notes ? 'Editar observações' : 'Adicionar observações'}
+                      </Button>
 
                       {entryLogs.length > 0 && (
                         <div className="border-t border-border/60 pt-2 mt-1 space-y-1">
@@ -398,6 +435,32 @@ export default function Cycle() {
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!noteEntry} onOpenChange={open => { if (!open && !savingNotes) setNoteEntry(null); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Observações — {subjects.find(s => s.id === noteEntry?.subjectId)?.name || 'Matéria'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Label htmlFor="cycle-observations">Observações</Label>
+            <Textarea
+              id="cycle-observations"
+              className="min-h-72 max-h-[55dvh] resize-y text-base leading-relaxed sm:text-sm"
+              rows={12}
+              placeholder="Assuntos, páginas, exercícios, dúvidas e outras anotações..."
+              value={noteText}
+              onChange={event => setNoteText(event.target.value)}
+              disabled={savingNotes}
+            />
+            {noteError && <p role="alert" className="text-sm text-destructive">{noteError}</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button className="flex-1" disabled={savingNotes} onClick={() => saveObservations(noteText)}>{savingNotes ? 'Salvando...' : 'Salvar'}</Button>
+              {noteText && <Button variant="outline" disabled={savingNotes} onClick={() => saveObservations('')}>Limpar</Button>}
+              <Button variant="ghost" disabled={savingNotes} onClick={() => setNoteEntry(null)}>Cancelar</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
