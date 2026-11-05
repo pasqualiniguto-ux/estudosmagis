@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793887976251,
+      "tag": "0000_add_cycle_entry_observations",
+      "breakpoints": true
+    }
+  ]
+}

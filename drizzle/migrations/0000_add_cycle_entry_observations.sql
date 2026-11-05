@@ -1,0 +1,1 @@
+ALTER TABLE public.cycle_entries ADD COLUMN notes text NOT NULL DEFAULT '';
