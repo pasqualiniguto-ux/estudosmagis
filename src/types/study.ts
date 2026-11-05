@@ -34,6 +34,7 @@ export interface CycleEntry {
   subjectId: string;
   plannedMinutes: number;
   order: number;
+  notes?: string;
 }
 
 export interface DailyProgress {
