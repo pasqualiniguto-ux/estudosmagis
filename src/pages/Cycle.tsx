@@ -12,6 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare, StickyNote } from 'lucide-react';
 import FixedCycleItems from '@/components/FixedCycleItems';
+import DayTimes from '@/components/DayTimes';
+
+const DAY_NAMES_FULL = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -131,8 +134,12 @@ export default function Cycle() {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
       <main className="container py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold text-foreground">Ciclo de Estudos</h1>
+        </div>
+
+        <div className="mb-6 max-w-xs">
+          <DayTimes dayOfWeek={(new Date().getDay() + 6) % 7} dayLabel={DAY_NAMES_FULL[(new Date().getDay() + 6) % 7]} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
