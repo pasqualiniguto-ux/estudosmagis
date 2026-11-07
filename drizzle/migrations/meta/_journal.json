@@ -8,6 +8,13 @@
       "when": 1793887976251,
       "tag": "0000_add_cycle_entry_observations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794079541172,
+      "tag": "0001_cycle_entry_times",
+      "breakpoints": true
     }
   ]
 }

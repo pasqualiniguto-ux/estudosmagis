@@ -16,29 +16,41 @@ export type Database = {
     Tables: {
       cycle_entries: {
         Row: {
+          break_end: string | null
+          break_start: string | null
           created_at: string
+          end_time: string | null
           id: string
           notes: string
           planned_minutes: number
           sort_order: number
+          start_time: string | null
           subject_id: string
           user_id: string
         }
         Insert: {
+          break_end?: string | null
+          break_start?: string | null
           created_at?: string
+          end_time?: string | null
           id?: string
           notes?: string
           planned_minutes?: number
           sort_order?: number
+          start_time?: string | null
           subject_id: string
           user_id: string
         }
         Update: {
+          break_end?: string | null
+          break_start?: string | null
           created_at?: string
+          end_time?: string | null
           id?: string
           notes?: string
           planned_minutes?: number
           sort_order?: number
+          start_time?: string | null
           subject_id?: string
           user_id?: string
         }

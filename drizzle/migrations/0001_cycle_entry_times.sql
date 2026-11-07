@@ -1,0 +1,1 @@
+ALTER TABLE public.cycle_entries ADD COLUMN start_time text, ADD COLUMN break_start text, ADD COLUMN break_end text, ADD COLUMN end_time text;
