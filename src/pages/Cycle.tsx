@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare, StickyNote } from 'lucide-react';
 import FixedCycleItems from '@/components/FixedCycleItems';
+import DayTimes from '@/components/DayTimes';
+import { DAY_NAMES_FULL } from '@/lib/dateUtils';
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
