@@ -12,9 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare, StickyNote } from 'lucide-react';
 import FixedCycleItems from '@/components/FixedCycleItems';
-import DayTimes from '@/components/DayTimes';
-
-const DAY_NAMES_FULL = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
+import CycleEntryTimes from '@/components/CycleEntryTimes';
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -138,10 +136,7 @@ export default function Cycle() {
           <h1 className="text-2xl font-bold text-foreground">Ciclo de Estudos</h1>
         </div>
 
-        <div className="mb-6 max-w-xs">
-          <DayTimes dayOfWeek={(new Date().getDay() + 6) % 7} dayLabel={DAY_NAMES_FULL[(new Date().getDay() + 6) % 7]} />
-        </div>
-
+<div className="mb-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Adicionar Bloco e Gerenciamento */}
           <div className="col-span-1 border rounded-xl p-4 h-fit bg-card">
@@ -238,6 +233,9 @@ export default function Cycle() {
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted-foreground mt-2">
                             <span>Tempo: {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}</span>
                             <Progress value={progress * 100} className="h-1.5 w-full sm:w-24" />
+                          </div>
+                          <div className="mt-2">
+                            <CycleEntryTimes entryId={entry.id} subjectName={subject?.name} />
                           </div>
                         </div>
 
