@@ -1,25 +1,19 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import AppNavigation from '@/components/AppNavigation';
-import QuickNotes from '@/components/QuickNotes';
-import DayTimes from '@/components/DayTimes';
-import StudyTimer from '@/components/StudyTimer';
 import ExamReminders from '@/components/ExamReminders';
+import StudyTimer from '@/components/StudyTimer';
 import { useStudy } from '@/contexts/StudyContext';
-import { ScheduleEntry } from '@/types/study';
+import { CycleEntry } from '@/types/study';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Play, Plus, Clock, ClipboardList, Trash2, ChevronLeft, ChevronRight, StickyNote, Sparkles, Trash, Bookmark, Check, Pencil } from 'lucide-react';
-import { useStudyRecommendationEnabled } from '@/hooks/useStudyRecommendationEnabled';
-
-
-const DAY_NAMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const DAY_NAMES_FULL = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo'];
+import { Play, Plus, Clock, ClipboardList, Trash2, ArrowRight, ArrowLeft, RotateCw, RotateCcw, BookOpen, Pencil, MessageSquare, StickyNote } from 'lucide-react';
+import FixedCycleItems from '@/components/FixedCycleItems';
+import CycleEntryTimes from '@/components/CycleEntryTimes';
 
 function fmtTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -37,172 +31,93 @@ function fmtPlanned(minutes: number): string {
   return `${m}min`;
 }
 
-import { toDateStr, nowBrasilia } from '@/lib/dateUtils';
-
-function getWeekDates(weekOffset: number): Date[] {
-  const today = nowBrasilia();
-  today.setHours(12, 0, 0, 0);
-  const jsDay = today.getDay();
-  const diffToMonday = jsDay === 0 ? -6 : 1 - jsDay;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday + weekOffset * 7);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  });
-}
-
-function fmtDateShort(d: Date): string {
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
+import { todayStr as getTodayStr } from '@/lib/dateUtils';
 
 export default function Index() {
-  const { subjects, addScheduleEntry, updateScheduleEntry, removeScheduleEntry, addStudiedTime, addStudyLog, getEntriesForDate, getProgressForEntry, studyLogs, clearSchedule, schedulePresets, saveSchedulePreset, applySchedulePreset, renameSchedulePreset, deleteSchedulePreset, scheduleEntries } = useStudy();
-  const recommendationsEnabled = useStudyRecommendationEnabled();
+  const { subjects, cycleEntries, activeCycleIndex, completedCyclesCount, studyLogs, updateStudyLog, removeStudyLog, addCycleEntry, updateCycleObservations, removeCycleEntry, addStudiedTime, addStudyLog, getProgressForEntry, getTotalProgressForEntry, advanceCycle, regressCycle, setCompletedCyclesCount } = useStudy();
 
-  const [presetsOpen, setPresetsOpen] = useState(false);
-  const [newPresetName, setNewPresetName] = useState('');
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
-  const [applyConfirm, setApplyConfirm] = useState<{ id: string; name: string } | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
-  const [savingPreset, setSavingPreset] = useState(false);
-  const ACTIVE_PRESET_KEY = 'activeSchedulePresetId';
-  const [activePresetId, setActivePresetIdState] = useState<string | null>(() => {
-    try { return localStorage.getItem(ACTIVE_PRESET_KEY); } catch { return null; }
-  });
-  const setActivePresetId = (id: string | null) => {
-    setActivePresetIdState(id);
+  const [noteEntry, setNoteEntry] = useState<CycleEntry | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [noteError, setNoteError] = useState('');
+
+  const saveObservations = async (text: string) => {
+    if (!noteEntry || savingNotes) return;
+    setSavingNotes(true);
+    setNoteError('');
     try {
-      if (id) localStorage.setItem(ACTIVE_PRESET_KEY, id);
-      else localStorage.removeItem(ACTIVE_PRESET_KEY);
-    } catch {}
-  };
-  // Clear active id if the preset no longer exists
-  useEffect(() => {
-    if (activePresetId && !schedulePresets.some(p => p.id === activePresetId)) {
-      setActivePresetId(null);
+      await updateCycleObservations(noteEntry.id, text);
+      setNoteEntry(null);
+    } catch {
+      setNoteError('Não foi possível salvar as observações. Tente novamente.');
+    } finally {
+      setSavingNotes(false);
     }
-  }, [schedulePresets, activePresetId]);
-  const activePreset = schedulePresets.find(p => p.id === activePresetId) || null;
+  };
 
-  const [clearScheduleConfirm, setClearScheduleConfirm] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-  const todayStr = toDateStr(nowBrasilia());
+  // Observation editor
+  const [editObsLog, setEditObsLog] = useState<{ id: string; topicName: string; notes: string } | null>(null);
+  const [obsText, setObsText] = useState('');
 
-  // Add entry dialog
-  const [addDate, setAddDate] = useState<Date | null>(null);
+  const todayStr = getTodayStr();
+
+  // Add block state
   const [addSubjectId, setAddSubjectId] = useState('');
-  const [addHours, setAddHours] = useState(0);
-  const [addMinutes, setAddMinutes] = useState(30);
-  const [addRecurring, setAddRecurring] = useState<'once' | 'recurring' | 'daily'>('once');
+  const [addHours, setAddHours] = useState(1);
+  const [addMinutes, setAddMinutes] = useState(0);
 
   // Timer
-  const [timerEntry, setTimerEntry] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
+  const [timerEntry, setTimerEntry] = useState<CycleEntry | null>(null);
 
   // Manual time
-  const [manualState, setManualState] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
+  const [manualEntry, setManualEntry] = useState<CycleEntry | null>(null);
   const [manualHours, setManualHours] = useState(0);
   const [manualMins, setManualMins] = useState(0);
 
   // Manual log
-  const [logState, setLogState] = useState<{ entry: ScheduleEntry; date: string } | null>(null);
+  const [logEntry, setLogEntry] = useState<CycleEntry | null>(null);
   const [logTopicId, setLogTopicId] = useState('');
   const [logCorrect, setLogCorrect] = useState(0);
   const [logWrong, setLogWrong] = useState(0);
   const [logTimeH, setLogTimeH] = useState(0);
   const [logTimeM, setLogTimeM] = useState(0);
 
-  // Notes for schedule entry
-  const [noteEntry, setNoteEntry] = useState<ScheduleEntry | null>(null);
-  const [noteText, setNoteText] = useState('');
-
-  // Drag and drop
-  const [draggedEntry, setDraggedEntry] = useState<{ entry: ScheduleEntry; sourceDate: string } | null>(null);
-  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
-  const [recurringDropChoice, setRecurringDropChoice] = useState<{ entry: ScheduleEntry; targetDate: Date; targetDateStr: string } | null>(null);
-
-  const handleClearSchedule = async () => {
-    await clearSchedule();
-    setActivePresetId(null);
-    setClearScheduleConfirm(false);
-  };
-
-  const handleDrop = (targetDate: Date, targetDateStr: string) => {
-    if (!draggedEntry) return;
-    const { entry, sourceDate } = draggedEntry;
-    setDragOverDate(null);
-    setDraggedEntry(null);
-    if (sourceDate === targetDateStr) return;
-    const targetDayOfWeek = (targetDate.getDay() + 6) % 7;
-    if (entry.recurring) {
-      // Pergunta ao usuário como deseja remanejar a recorrência
-      setRecurringDropChoice({ entry, targetDate, targetDateStr });
-    } else {
-      updateScheduleEntry(entry.id, { dayOfWeek: targetDayOfWeek, date: targetDateStr });
-    }
-  };
-
-  const applyRecurringDrop = (mode: 'once' | 'changeDay' | 'duplicate') => {
-    if (!recurringDropChoice) return;
-    const { entry, targetDate, targetDateStr } = recurringDropChoice;
-    const targetDayOfWeek = (targetDate.getDay() + 6) % 7;
-    if (mode === 'once') {
-      // Apenas nesta semana: vira entrada única no dia destino
-      updateScheduleEntry(entry.id, { recurring: false, dayOfWeek: targetDayOfWeek, date: targetDateStr });
-    } else if (mode === 'changeDay') {
-      // Altera o dia da recorrência permanentemente
-      updateScheduleEntry(entry.id, { recurring: true, dayOfWeek: targetDayOfWeek, date: null });
-    } else if (mode === 'duplicate') {
-      // Mantém a recorrência original e cria uma cópia única no dia destino
-      addScheduleEntry(entry.subjectId, entry.plannedMinutes, false, targetDayOfWeek, targetDateStr);
-    }
-    setRecurringDropChoice(null);
-  };
-
-  const handleAddEntry = async () => {
-    if (!addDate || !addSubjectId) return;
+  const handleAddBlock = () => {
+    if (!addSubjectId) return;
     const totalMin = addHours * 60 + addMinutes;
     if (totalMin <= 0) return;
-    const ourDay = (addDate.getDay() + 6) % 7;
-    if (addRecurring === 'daily') {
-      for (let d = 0; d < 7; d++) {
-        await addScheduleEntry(addSubjectId, totalMin, true, d);
-      }
-    } else {
-      addScheduleEntry(addSubjectId, totalMin, addRecurring === 'recurring', ourDay, toDateStr(addDate));
-    }
-    setAddDate(null);
+    addCycleEntry(addSubjectId, totalMin);
+    setAddSubjectId('');
+    setAddHours(1);
+    setAddMinutes(0);
   };
 
   const handleManualTime = () => {
-    if (!manualState) return;
+    if (!manualEntry) return;
     const totalSec = manualHours * 3600 + manualMins * 60;
-    if (totalSec > 0) addStudiedTime(manualState.entry.id, manualState.date, totalSec);
-    setManualState(null);
+    if (totalSec > 0) addStudiedTime(manualEntry.id, todayStr, totalSec);
+    setManualEntry(null);
     setManualHours(0);
     setManualMins(0);
   };
 
   const handleManualLog = () => {
-    if (!logState) return;
-    const subject = subjects.find(s => s.id === logState.entry.subjectId);
+    if (!logEntry) return;
+    const subject = subjects.find(s => s.id === logEntry.subjectId);
     const topic = subject?.topics.find(t => t.id === logTopicId);
     const timeSec = logTimeH * 3600 + logTimeM * 60;
-    if (timeSec > 0) addStudiedTime(logState.entry.id, logState.date, timeSec);
+    if (timeSec > 0) addStudiedTime(logEntry.id, todayStr, timeSec);
     addStudyLog({
-      subjectId: logState.entry.subjectId,
+      subjectId: logEntry.subjectId,
       topicId: logTopicId || '',
       topicName: topic?.name || '',
-      date: logState.date,
+      date: todayStr,
       timeStudiedSeconds: timeSec,
       questionsCorrect: logCorrect,
       questionsWrong: logWrong,
-      scheduleEntryId: logState.entry.id,
+      scheduleEntryId: logEntry.id,
     });
-    setLogState(null);
+    setLogEntry(null);
     resetLogForm();
   };
 
@@ -217,266 +132,238 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
-      <QuickNotes />
       <main className="container py-6">
-        <h1 className="text-2xl font-bold text-foreground mb-4">Planejamento Semanal</h1>
-
-        {/* Week Navigation */}
-        <div className="flex items-center justify-between gap-3 mb-5">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o - 1)}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
-              {fmtDateShort(weekDates[0])} — {fmtDateShort(weekDates[6])}
-            </span>
-            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(o => o + 1)}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            {weekOffset !== 0 && (
-              <Button variant="outline" size="sm" onClick={() => setWeekOffset(0)}>Hoje</Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setPresetsOpen(true)}>
-              <Bookmark className="h-4 w-4 mr-1" />
-              {activePreset ? (
-                <span className="flex items-center gap-1">
-                  <span className="text-muted-foreground hidden sm:inline">Planejamento:</span>
-                  <span className="font-medium max-w-[160px] truncate">{activePreset.name}</span>
-                </span>
-              ) : (
-                <>Planejamentos</>
-              )}
-            </Button>
-            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setClearScheduleConfirm(true)}>
-              <Trash className="h-4 w-4 mr-1" /> Limpar
-            </Button>
-          </div>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold text-foreground">Ciclo de Estudos</h1>
         </div>
 
-        
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-
-          {weekDates.map((dateObj, i) => {
-            const dateStr = toDateStr(dateObj);
-            const isToday = dateStr === todayStr;
-            const dayEntries = getEntriesForDate(dateStr);
-
-            return (
-              <div
-                key={dateStr}
-                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dragOverDate !== dateStr) setDragOverDate(dateStr); }}
-                onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverDate(prev => prev === dateStr ? null : prev); }}
-                onDrop={() => handleDrop(dateObj, dateStr)}
-                className={`rounded-xl border p-3 flex flex-col transition-colors ${
-                  dragOverDate === dateStr && draggedEntry && draggedEntry.sourceDate !== dateStr
-                    ? 'bg-primary/15 border-primary border-dashed'
-                    : isToday ? 'bg-primary/5 border-primary/30' : 'bg-card border-border'
-                }`}
-              >
-                <h3 className={`text-sm font-semibold text-center mb-3 pb-2 border-b ${isToday ? 'text-primary border-primary/20' : 'text-foreground border-border'}`}>
-                  {DAY_NAMES[i]} {fmtDateShort(dateObj)}
-                </h3>
-
-                <DayTimes dayOfWeek={i} dayLabel={DAY_NAMES_FULL[i]} />
-                
-                
-                <div className="space-y-2 flex-1">
-                  {dayEntries.map(entry => {
-                    const subject = subjects.find(s => s.id === entry.subjectId);
-                    const studied = getProgressForEntry(entry.id, dateStr);
-                    const plannedSec = entry.plannedMinutes * 60;
-                    const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
-                    const isCompleted = progress >= 1;
-                    const hasProgress = studied > 0 && !isCompleted;
-                    const isDragging = draggedEntry?.entry.id === entry.id && draggedEntry.sourceDate === dateStr;
-
-                    return (
-                      <div
-                        key={entry.id + dateStr}
-                        draggable
-                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDraggedEntry({ entry, sourceDate: dateStr }); }}
-                        onDragEnd={() => { setDraggedEntry(null); setDragOverDate(null); }}
-                        className={`p-2.5 rounded-lg border transition-all cursor-grab active:cursor-grabbing ${
-                          isDragging ? 'opacity-40' : ''
-                        } ${
-                          isCompleted ? 'border-primary/20 bg-primary/5 opacity-60'
-                          : hasProgress ? 'border-primary/40 bg-primary/5'
-                          : 'border-border bg-secondary/30'
-                        }`}
-                        style={subject?.color ? { borderLeft: `4px solid ${subject.color}` } : undefined}
-                      >
-
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-xs font-semibold truncate ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                            {subject?.name || '—'}
-                          </span>
-                          {!entry.recurring && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeScheduleEntry(entry.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {entry.recurring && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => removeScheduleEntry(entry.id)} title="Remover recorrência">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                        {entry.recurring && (
-                          <p className="text-[9px] text-muted-foreground mb-0.5 italic">↻ Recorrente</p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground mb-1.5">
-                          {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}
-                        </p>
-                        <Progress value={progress * 100} className="h-1.5 mb-1.5" />
-                        {(() => {
-                          const entryLogs = studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName);
-                          if (entryLogs.length === 0) return null;
-                          const uniqueTopics = [...new Set(entryLogs.map(l => l.topicName))];
-                          return (
-                            <div className="flex flex-wrap gap-0.5 mb-1.5">
-                              {uniqueTopics.map(name => (
-                                <span key={name} className="text-[8px] bg-primary/10 text-primary rounded px-1 py-0.5 leading-tight">
-                                  {name}
-                                </span>
-                              ))}
-                            </div>
-                          );
-                        })()}
-                        {recommendationsEnabled && (() => {
-                          const subj = subjects.find(s => s.id === entry.subjectId);
-                          if (!subj || subj.topics.length === 0) return null;
-                          const entryLogTopicIds = new Set(studyLogs.filter(l => l.scheduleEntryId === entry.id && l.date === dateStr && l.topicName).map(l => l.topicId));
-                          const sortedTopics = [...subj.topics].sort((a, b) => {
-                            const aLogs = studyLogs.filter(l => l.topicId === a.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
-                            const bLogs = studyLogs.filter(l => l.topicId === b.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
-                            const aLast = aLogs.length > 0 ? aLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
-                            const bLast = bLogs.length > 0 ? bLogs.sort((x, y) => y.date.localeCompare(x.date))[0].date : '';
-                            if (!aLast && bLast) return -1;
-                            if (aLast && !bLast) return 1;
-                            return aLast.localeCompare(bLast);
-                          });
-                          const recommended = sortedTopics.find(t => !entryLogTopicIds.has(t.id));
-                          if (!recommended) return null;
-                          const recLogs = studyLogs.filter(l => l.topicId === recommended.id && (l.questionsCorrect > 0 || l.questionsWrong > 0));
-                          const neverStudied = recLogs.length === 0;
-                          return (
-                            <p className="text-[9px] text-muted-foreground mb-1 flex items-center gap-1 truncate" title={`Sugestão: ${recommended.name}`}>
-                              <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-                              <span className="truncate">
-                                {neverStudied ? recommended.name : `${recommended.name}`}
-                              </span>
-                            </p>
-                          );
-                        })()}
-                        {entry.notes && (
-                          <div className="my-3 border-t border-border pt-2">
-                            <span className="text-xs font-semibold text-foreground">Observações</span>
-                            <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground [overflow-wrap:anywhere]">
-                              {entry.notes}
-                            </p>
-                          </div>
-                        )}
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:bg-primary/10" onClick={() => setTimerEntry({ entry, date: dateStr })} title="Cronômetro">
-                            <Play className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setManualState({ entry, date: dateStr }); setManualHours(0); setManualMins(0); }} title="Tempo manual">
-                            <Clock className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:bg-muted/50" onClick={() => { setLogState({ entry, date: dateStr }); resetLogForm(); }} title="Registrar estudo">
-                            <ClipboardList className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <Button variant="outline" size="sm" className="mt-2 h-auto min-h-8 w-full gap-1.5 px-2 py-1.5 text-xs whitespace-normal" onClick={() => { setNoteEntry(entry); setNoteText(entry.notes || ''); }}>
-                          <StickyNote className="h-3.5 w-3.5 shrink-0" />
-                          {entry.notes ? 'Editar observações' : 'Adicionar observações'}
-                        </Button>
-                      </div>
-                    );
-                  })}
+<div className="mb-4" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Adicionar Bloco e Gerenciamento */}
+          <div className="col-span-1 border rounded-xl p-4 h-fit bg-card">
+            <h2 className="text-lg font-semibold mb-4">Adicionar ao Ciclo</h2>
+            {subjects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Adicione matérias na aba "Matérias" primeiro.</p>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Matéria</label>
+                  <Select value={addSubjectId} onValueChange={setAddSubjectId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full mt-3 text-xs text-muted-foreground hover:text-primary"
-                  onClick={() => { setAddDate(dateObj); setAddSubjectId(''); setAddHours(0); setAddMinutes(30); setAddRecurring('once'); }}
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Horas</label>
+                    <Input type="number" min={0} max={23} value={addHours} onChange={e => setAddHours(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Minutos</label>
+                    <Input type="number" min={0} max={59} value={addMinutes} onChange={e => setAddMinutes(Number(e.target.value))} />
+                  </div>
+                </div>
+                <Button className="w-full" onClick={handleAddBlock} disabled={!addSubjectId}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar Bloco
                 </Button>
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
 
+          {/* Listagem do Ciclo */}
+          <div className="col-span-1 lg:col-span-2">
+            <FixedCycleItems />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+              <h2 className="text-lg font-semibold text-center sm:text-left">Seu Ciclo (Ordem)</h2>
+              <div className="flex items-center gap-2 self-center sm:self-auto">
+                <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border">
+                  Ciclos concluídos: <span className="text-foreground font-bold ml-1">{completedCyclesCount}</span>
+                </div>
+                {completedCyclesCount > 0 && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground border" onClick={() => setCompletedCyclesCount(0)} title="Zerar contagem">
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            {cycleEntries.length === 0 ? (
+              <div className="border border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-muted-foreground">
+                <p>O seu ciclo está vazio.</p>
+                <p className="text-sm">Adicione blocos ao lado para começar seu ciclo de estudos!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {cycleEntries.map((entry, index) => {
+                  const subject = subjects.find(s => s.id === entry.subjectId);
+                  const isActive = index === activeCycleIndex;
+                  const studied = getTotalProgressForEntry(entry.id);
+                  const plannedSec = entry.plannedMinutes * 60;
+                  const progress = plannedSec > 0 ? Math.min(studied / plannedSec, 1) : 0;
+
+                  const entryLogs = studyLogs
+                    .filter(l => l.scheduleEntryId === entry.id)
+                    .slice()
+                    .reverse();
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className={`relative flex flex-col gap-3 p-4 rounded-xl border transition-all ${
+                        isActive ? 'bg-primary/5 border-primary shadow-sm scale-[1.01]' : 'bg-card border-border hover:bg-muted/10'
+                      }`}
+                      style={subject?.color ? { borderLeft: `6px solid ${subject.color}` } : undefined}
+                    >
+                      {isActive && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
+                          <span>Estudando</span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="flex items-center justify-center bg-muted text-muted-foreground font-medium text-xs rounded-full h-5 w-5">
+                              {index + 1}
+                            </span>
+                            <h3 className={`font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                              {subject?.name || '—'}
+                            </h3>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted-foreground mt-2">
+                            <span>Tempo: {fmtTime(studied)} / {fmtPlanned(entry.plannedMinutes)}</span>
+                            <Progress value={progress * 100} className="h-1.5 w-full sm:w-24" />
+                          </div>
+                          <div className="mt-2">
+                            <CycleEntryTimes entryId={entry.id} subjectName={subject?.name} />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0 justify-end">
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-primary" onClick={() => setTimerEntry(entry)} title="Cronômetro">
+                            <Play className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setManualEntry(entry); setManualHours(0); setManualMins(0); }} title="Tempo manual">
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => { setLogEntry(entry); resetLogForm(); }} title="Registrar estudo">
+                            <ClipboardList className="h-4 w-4" />
+                          </Button>
+
+                          {isActive && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-2 gap-1 px-3"
+                                onClick={regressCycle}
+                                disabled={activeCycleIndex === 0 && completedCyclesCount === 0}
+                                title="Voltar ao bloco anterior"
+                              >
+                                <ArrowLeft className="h-4 w-4" /> Voltar
+                              </Button>
+                              {index === cycleEntries.length - 1 ? (
+                                <Button size="sm" className="gap-1 px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={advanceCycle}>
+                                  Recomeçar Ciclo <RotateCw className="h-3.5 w-3.5" />
+                                </Button>
+                              ) : (
+                                <Button size="sm" className="gap-1 px-3" onClick={advanceCycle}>
+                                  Avançar <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive ml-1" onClick={() => removeCycleEntry(entry.id)} title="Remover bloco">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {entry.notes && (
+                        <div className="border-t border-border pt-3">
+                          <span className="text-sm font-semibold text-foreground">Observações</span>
+                          <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">
+                            {entry.notes}
+                          </p>
+                        </div>
+                      )}
+                      <Button variant="outline" size="sm" className="h-auto min-h-9 w-full gap-1.5 py-2 whitespace-normal" onClick={() => {
+                        setNoteEntry(entry);
+                        setNoteText(entry.notes || '');
+                        setNoteError('');
+                      }}>
+                        <StickyNote className="h-4 w-4 shrink-0" />
+                        {entry.notes ? 'Editar observações' : 'Adicionar observações'}
+                      </Button>
+
+                      {entryLogs.length > 0 && (
+                        <div className="border-t border-border/60 pt-2 mt-1 space-y-1">
+                          {entryLogs.map(log => (
+                            <div key={log.id} className="group flex items-start gap-2 text-xs text-muted-foreground">
+                              <BookOpen className="h-3 w-3 mt-0.5 shrink-0 opacity-70" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-foreground/80 truncate">
+                                    {log.topicName || 'Sem assunto'}
+                                  </span>
+                                  {(log.questionsCorrect > 0 || log.questionsWrong > 0) && (
+                                    <span className="text-[10px]">{log.questionsCorrect}✓ {log.questionsWrong}✗</span>
+                                  )}
+                                  {log.timeStudiedSeconds > 0 && (
+                                    <span className="text-[10px] opacity-70">· {fmtTime(log.timeStudiedSeconds)}</span>
+                                  )}
+                                </div>
+                                {log.notes && (
+                                  <p className="text-[11px] italic opacity-80 mt-0.5 whitespace-pre-wrap break-words">
+                                    “{log.notes}”
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title={log.notes ? 'Editar observação' : 'Adicionar observação'}
+                                onClick={() => {
+                                  setEditObsLog({ id: log.id, topicName: log.topicName, notes: log.notes || '' });
+                                  setObsText(log.notes || '');
+                                }}
+                              >
+                                {log.notes ? <Pencil className="h-3 w-3" /> : <MessageSquare className="h-3 w-3" />}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                title="Excluir registro"
+                                onClick={() => {
+                                  if (confirm('Excluir este registro de estudo?')) removeStudyLog(log.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
         <ExamReminders />
       </main>
 
-      {/* Timer Dialog */}
+      {/* Reusing Timer Dialog - Pass entry and today's date */}
       {timerEntry && (
-        <StudyTimer entry={timerEntry.entry} date={timerEntry.date} open={!!timerEntry} onClose={() => setTimerEntry(null)} />
+        <StudyTimer entry={timerEntry} date={todayStr} open={!!timerEntry} onClose={() => setTimerEntry(null)} />
       )}
 
-      {/* Add Schedule Entry Dialog */}
-      <Dialog open={!!addDate} onOpenChange={o => { if (!o) setAddDate(null); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
-              Adicionar matéria — {addDate ? `${DAY_NAMES[(addDate.getDay() + 6) % 7]} ${fmtDateShort(addDate)}` : ''}
-            </DialogTitle>
-          </DialogHeader>
-          {subjects.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">Nenhuma matéria cadastrada. Vá para a página de Matérias para adicionar.</p>
-          ) : (
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Matéria</label>
-                <Select value={addSubjectId} onValueChange={setAddSubjectId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Horas</label>
-                  <Input type="number" min={0} max={23} value={addHours} onChange={e => setAddHours(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Minutos</label>
-                  <Input type="number" min={0} max={59} value={addMinutes} onChange={e => setAddMinutes(Number(e.target.value))} />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-2 block">Frequência</label>
-                <RadioGroup value={addRecurring} onValueChange={(v) => setAddRecurring(v as 'once' | 'recurring' | 'daily')}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="once" id="freq-once" />
-                    <Label htmlFor="freq-once" className="text-sm">Apenas nesta data</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="recurring" id="freq-recurring" />
-                    <Label htmlFor="freq-recurring" className="text-sm">
-                      Repetir toda {addDate ? DAY_NAMES_FULL[(addDate.getDay() + 6) % 7] : ''}
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="daily" id="freq-daily" />
-                    <Label htmlFor="freq-daily" className="text-sm">Repetir todos os dias</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <Button className="w-full" onClick={handleAddEntry} disabled={!addSubjectId}>Adicionar</Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Manual Time Dialog */}
-      <Dialog open={!!manualState} onOpenChange={o => { if (!o) setManualState(null); }}>
+      <Dialog open={!!manualEntry} onOpenChange={o => { if (!o) setManualEntry(null); }}>
         <DialogContent className="sm:max-w-xs">
           <DialogHeader>
             <DialogTitle>Adicionar tempo manual</DialogTitle>
@@ -498,13 +385,13 @@ export default function Index() {
       </Dialog>
 
       {/* Manual Study Log Dialog */}
-      <Dialog open={!!logState} onOpenChange={o => { if (!o) setLogState(null); }}>
+      <Dialog open={!!logEntry} onOpenChange={o => { if (!o) setLogEntry(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Registrar estudo manual</DialogTitle>
           </DialogHeader>
-          {logState && (() => {
-            const subject = subjects.find(s => s.id === logState.entry.subjectId);
+          {logEntry && (() => {
+            const subject = subjects.find(s => s.id === logEntry.subjectId);
             return (
               <div className="space-y-4 py-2">
                 <p className="text-sm text-muted-foreground">Matéria: <span className="text-foreground font-medium">{subject?.name}</span></p>
@@ -535,11 +422,11 @@ export default function Index() {
                   size="sm"
                   className="w-full text-xs"
                   onClick={() => {
-                    setLogTimeH(Math.floor(logState.entry.plannedMinutes / 60));
-                    setLogTimeM(logState.entry.plannedMinutes % 60);
+                    setLogTimeH(Math.floor(logEntry.plannedMinutes / 60));
+                    setLogTimeM(logEntry.plannedMinutes % 60);
                   }}
                 >
-                  Cumpri o tempo previsto ({fmtPlanned(logState.entry.plannedMinutes)})
+                  Cumpri o tempo previsto ({fmtPlanned(logEntry.plannedMinutes)})
                 </Button>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -558,251 +445,56 @@ export default function Index() {
         </DialogContent>
       </Dialog>
 
-      {/* Entry Notes Dialog */}
-      <Dialog open={!!noteEntry} onOpenChange={o => { if (!o) setNoteEntry(null); }}>
+      <Dialog open={!!noteEntry} onOpenChange={open => { if (!open && !savingNotes) setNoteEntry(null); }}>
         <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Observações — {subjects.find(s => s.id === noteEntry?.subjectId)?.name || 'Matéria'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <Label htmlFor="schedule-observations">Observações</Label>
+            <Label htmlFor="cycle-observations">Observações</Label>
             <Textarea
-              id="schedule-observations"
+              id="cycle-observations"
               className="min-h-72 max-h-[55dvh] resize-y text-base leading-relaxed sm:text-sm"
               rows={12}
               placeholder="Assuntos, páginas, exercícios, dúvidas e outras anotações..."
               value={noteText}
-              onChange={e => setNoteText(e.target.value)}
+              onChange={event => setNoteText(event.target.value)}
+              disabled={savingNotes}
             />
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={() => {
-                if (noteEntry) {
-                  updateScheduleEntry(noteEntry.id, { notes: noteText });
-                }
-                setNoteEntry(null);
-              }}>Salvar</Button>
-              {noteText && (
-                <Button variant="outline" onClick={() => {
-                  if (noteEntry) {
-                    updateScheduleEntry(noteEntry.id, { notes: '' });
-                  }
-                  setNoteEntry(null);
-                }}>Limpar</Button>
-              )}
+            {noteError && <p role="alert" className="text-sm text-destructive">{noteError}</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button className="flex-1" disabled={savingNotes} onClick={() => saveObservations(noteText)}>{savingNotes ? 'Salvando...' : 'Salvar'}</Button>
+              {noteText && <Button variant="outline" disabled={savingNotes} onClick={() => saveObservations('')}>Limpar</Button>}
+              <Button variant="ghost" disabled={savingNotes} onClick={() => setNoteEntry(null)}>Cancelar</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Recurring drop choice dialog */}
-      <Dialog open={!!recurringDropChoice} onOpenChange={o => { if (!o) setRecurringDropChoice(null); }}>
+      {/* Observation Dialog */}
+      <Dialog open={!!editObsLog} onOpenChange={o => { if (!o) setEditObsLog(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Matéria recorrente</DialogTitle>
+            <DialogTitle>Observação</DialogTitle>
           </DialogHeader>
-          {recurringDropChoice && (() => {
-            const subj = subjects.find(s => s.id === recurringDropChoice.entry.subjectId);
-            const targetDayName = DAY_NAMES_FULL[(recurringDropChoice.targetDate.getDay() + 6) % 7];
-            return (
-              <div className="space-y-3 py-2">
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{subj?.name}</span> é recorrente. Como deseja remanejá-la para <span className="font-medium text-foreground">{targetDayName} ({fmtDateShort(recurringDropChoice.targetDate)})</span>?
-                </p>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('once')}>
-                    <div>
-                      <div className="font-medium text-sm">Mover apenas nesta semana</div>
-                      <div className="text-xs text-muted-foreground">Vira uma entrada única no dia destino e a recorrência deixa de existir</div>
-                    </div>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('changeDay')}>
-                    <div>
-                      <div className="font-medium text-sm">Alterar o dia da recorrência</div>
-                      <div className="text-xs text-muted-foreground">A matéria passará a se repetir toda {targetDayName}</div>
-                    </div>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={() => applyRecurringDrop('duplicate')}>
-                    <div>
-                      <div className="font-medium text-sm">Duplicar nesta data</div>
-                      <div className="text-xs text-muted-foreground">Mantém a recorrência original e adiciona uma cópia única no dia destino</div>
-                    </div>
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-
-      {/* Clear schedule confirmation */}
-      <Dialog open={clearScheduleConfirm} onOpenChange={setClearScheduleConfirm}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Limpar cronograma</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja remover <span className="font-medium text-foreground">todas as matérias</span> do cronograma?
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setClearScheduleConfirm(false)}>
-                Cancelar
-              </Button>
-              <Button variant="destructive" className="flex-1" onClick={handleClearSchedule}>
-                Limpar tudo
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Schedule Presets Dialog */}
-      <Dialog open={presetsOpen} onOpenChange={setPresetsOpen}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Planejamentos salvos</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Salvar planejamento atual</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ex: Pré-edital, Pós-edital..."
-                  value={newPresetName}
-                  onChange={e => setNewPresetName(e.target.value)}
-                  onKeyDown={async e => {
-                    if (e.key === 'Enter' && newPresetName.trim() && !savingPreset) {
-                      setSavingPreset(true);
-                      const newId = await saveSchedulePreset(newPresetName);
-                      if (newId) setActivePresetId(newId);
-                      setNewPresetName('');
-                      setSavingPreset(false);
-                    }
-                  }}
-                />
-                <Button
-                  disabled={!newPresetName.trim() || savingPreset}
-                  onClick={async () => {
-                    setSavingPreset(true);
-                    const newId = await saveSchedulePreset(newPresetName);
-                    if (newId) setActivePresetId(newId);
-                    setNewPresetName('');
-                    setSavingPreset(false);
-                  }}
-                >
-                  Salvar
-                </Button>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {scheduleEntries.length} matéria(s) no cronograma atual.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">Meus planejamentos</p>
-              {schedulePresets.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">Nenhum planejamento salvo ainda.</p>
-              ) : (
-                <div className="space-y-2">
-                  {schedulePresets.map(p => (
-                    <div key={p.id} className="border rounded-lg p-3 bg-card">
-                      {renamingId === p.id ? (
-                        <div className="flex gap-2 mb-2">
-                          <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} autoFocus />
-                          <Button size="sm" onClick={async () => {
-                            await renameSchedulePreset(p.id, renameValue);
-                            setRenamingId(null);
-                          }}><Check className="h-4 w-4" /></Button>
-                        </div>
-                      ) : (
-                        <div className="font-medium text-sm text-foreground mb-2 flex items-center gap-2">
-                          <span>{p.name}</span>
-                          {activePresetId === p.id && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-medium">Atual</span>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="default" onClick={() => setApplyConfirm({ id: p.id, name: p.name })}>
-                          Aplicar
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setRenamingId(p.id); setRenameValue(p.name); }}>
-                          <Pencil className="h-3 w-3 mr-1" /> Renomear
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteConfirm({ id: p.id, name: p.name })}>
-                          <Trash2 className="h-3 w-3 mr-1" /> Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Apply preset confirmation */}
-      <Dialog open={!!applyConfirm} onOpenChange={o => { if (!o) setApplyConfirm(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Aplicar planejamento</DialogTitle>
-          </DialogHeader>
-          {applyConfirm && (
+          {editObsLog && (
             <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">
-                Como deseja aplicar <span className="font-medium text-foreground">{applyConfirm.name}</span>?
+              <p className="text-xs text-muted-foreground">
+                Assunto: <span className="text-foreground font-medium">{editObsLog.topicName || 'Sem assunto'}</span>
               </p>
-              <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={async () => {
-                const id = applyConfirm.id;
-                setApplyConfirm(null);
-                await applySchedulePreset(id, 'replace');
-                setActivePresetId(id);
-                setPresetsOpen(false);
-              }}>
-                <div>
-                  <div className="font-medium text-sm">Substituir cronograma atual</div>
-                  <div className="text-xs text-muted-foreground">Remove o planejamento atual e usa o salvo</div>
-                </div>
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-left h-auto py-3" onClick={async () => {
-                const id = applyConfirm.id;
-                setApplyConfirm(null);
-                await applySchedulePreset(id, 'merge');
-                setActivePresetId(null);
-                setPresetsOpen(false);
-              }}>
-                <div>
-                  <div className="font-medium text-sm">Adicionar ao cronograma atual</div>
-                  <div className="text-xs text-muted-foreground">Mantém o que já existe e adiciona as matérias do planejamento salvo</div>
-                </div>
-              </Button>
-              <Button variant="ghost" className="w-full" onClick={() => setApplyConfirm(null)}>Cancelar</Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete preset confirmation */}
-      <Dialog open={!!deleteConfirm} onOpenChange={o => { if (!o) setDeleteConfirm(null); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Excluir planejamento</DialogTitle>
-          </DialogHeader>
-          {deleteConfirm && (
-            <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">
-                Excluir <span className="font-medium text-foreground">{deleteConfirm.name}</span>? Esta ação não pode ser desfeita.
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-                <Button variant="destructive" className="flex-1" onClick={async () => {
-                  await deleteSchedulePreset(deleteConfirm.id);
-                  setDeleteConfirm(null);
-                }}>Excluir</Button>
+              <Textarea
+                placeholder="Ex.: revisar súmulas vinculantes; questão 3 errei por desatenção..."
+                value={obsText}
+                onChange={e => setObsText(e.target.value)}
+                rows={5}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditObsLog(null)}>Cancelar</Button>
+                <Button onClick={() => {
+                  updateStudyLog(editObsLog.id, { notes: obsText.trim() });
+                  setEditObsLog(null);
+                }}>Salvar</Button>
               </div>
             </div>
           )}
