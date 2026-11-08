@@ -124,9 +124,9 @@ export default function FixedCycleItems() {
   };
 
   return (
-    <div className="space-y-2 mb-4">
+    <div className="space-y-1 mb-6 pb-5 border-b">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Pin className="h-3 w-3" /> Fixos diariamente
         </div>
         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={openNew}>
@@ -145,8 +145,7 @@ export default function FixedCycleItems() {
         return (
           <div
             key={item.key}
-            className={`group flex items-center gap-3 p-3 rounded-xl border bg-card border-dashed transition-colors ${done ? 'bg-primary/5' : 'hover:bg-muted/30'}`}
-            style={{ borderLeft: `6px solid ${item.color}` }}
+            className="group flex items-center gap-3 py-2 transition-colors"
           >
             <Checkbox
               id={`fixed-${item.key}`}
@@ -154,11 +153,11 @@ export default function FixedCycleItems() {
               onCheckedChange={() => toggle(item.key)}
             />
             <label htmlFor={`fixed-${item.key}`} className="flex-1 flex items-center gap-2 cursor-pointer">
-              <Pin className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <span className={`font-medium ${done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                 {item.name}
               </span>
-              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="text-[10px] text-muted-foreground">
                 Fixo
               </span>
             </label>

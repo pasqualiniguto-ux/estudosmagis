@@ -96,23 +96,23 @@ export default function ExamReminders() {
     const diff = differenceInDays(parseISO(dateStr), nowBrasilia());
     if (diff < 0) return 'text-muted-foreground';
     if (diff <= 7) return 'text-destructive';
-    if (diff <= 30) return 'text-yellow-600 dark:text-yellow-400';
+    if (diff <= 30) return 'text-performance-warning';
     return 'text-primary';
   };
 
   const sortedExams = [...exams].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <section className="mt-8">
+    <section className="mt-10 pt-6 border-t">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-foreground">Próximas Provas</h2>
-        <Button size="sm" onClick={() => { resetForm(); setOpen(true); }}>
+        <h2 className="text-lg font-medium text-foreground">Próximas Provas</h2>
+        <Button size="sm" variant="outline" onClick={() => { resetForm(); setOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nova Prova
         </Button>
       </div>
 
       {sortedExams.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border p-6 text-center text-muted-foreground">
+        <div className="py-6 text-center text-muted-foreground">
           <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">Nenhuma prova cadastrada. Adicione suas próximas provas para acompanhar os prazos.</p>
         </div>
@@ -127,7 +127,7 @@ export default function ExamReminders() {
             return (
               <div
                 key={exam.id}
-                className="bg-card rounded-xl border border-border p-4 cursor-pointer hover:border-primary/40 transition-colors"
+                className="bg-card rounded-lg border border-border p-4 cursor-pointer hover:border-primary/40 transition-colors"
                 onClick={() => setExpandedId(isExpanded ? null : exam.id)}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -174,7 +174,7 @@ export default function ExamReminders() {
                     {(isExpanded ? examSubjects : examSubjects.slice(0, 4)).map(s => {
                       const qCount = exam.subjectQuestionCounts?.[s.id];
                       return (
-                        <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                        <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-sm bg-muted text-muted-foreground font-medium">
                           {s.name}{qCount ? ` (${qCount}q)` : ''}
                         </span>
                       );

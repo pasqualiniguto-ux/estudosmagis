@@ -21,9 +21,9 @@ export default function AppNavigation() {
   return (
     <>
       {/* ===== Desktop / Tablet: Top Header Bar ===== */}
-      <header className="hidden md:block border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="hidden md:block border-b border-border bg-background sticky top-0 z-50">
         <div className="container flex items-center h-14 gap-1">
-          <span className="font-bold text-lg text-primary mr-6 tracking-tight">Organizador de Estudos</span>
+          <span className="font-medium text-sm lg:text-base text-foreground mr-3 lg:mr-8 max-w-36 lg:max-w-none leading-snug shrink-0">Organizador de Estudos</span>
           {navItems.map(item => (
             <NavItemDesktop
               key={item.to}
@@ -34,7 +34,7 @@ export default function AppNavigation() {
             />
           ))}
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" onClick={toggle} title="Alternar tema" aria-label="Alternar tema" className="h-8 w-8 text-muted-foreground hover:text-foreground">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Sair">
@@ -45,11 +45,11 @@ export default function AppNavigation() {
       </header>
 
       {/* ===== Mobile: Slim Top Bar (title + actions only) ===== */}
-      <header className="md:hidden border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="md:hidden border-b border-border bg-background sticky top-0 z-50">
         <div className="flex items-center justify-between h-12 px-4">
-          <span className="font-bold text-base text-primary tracking-tight">Organizador de Estudos</span>
+          <span className="font-medium text-sm text-foreground">Organizador de Estudos</span>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={toggle} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon" onClick={toggle} title="Alternar tema" aria-label="Alternar tema" className="h-8 w-8 text-muted-foreground hover:text-foreground">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Sair">
@@ -60,7 +60,7 @@ export default function AppNavigation() {
       </header>
 
       {/* ===== Mobile: Bottom Navigation Bar ===== */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md safe-area-bottom">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background safe-area-bottom">
         <div className="flex items-center justify-around h-16 px-2">
           {navItems.map(item => {
             const active = pathname === item.to;
@@ -68,13 +68,14 @@ export default function AppNavigation() {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[60px] transition-colors ${
+                aria-current={active ? 'page' : undefined}
+                className={`flex flex-1 flex-col items-center gap-1 px-1 py-1.5 min-w-0 transition-colors ${
                   active
                     ? 'text-primary'
                     : 'text-muted-foreground active:text-foreground'
                 }`}
               >
-                <item.icon className={`h-5 w-5 transition-transform ${active ? 'scale-110' : ''}`} />
+                <item.icon className="h-5 w-5" />
                 <span className={`text-[10px] font-medium leading-tight ${active ? 'text-primary' : ''}`}>
                   {item.label}
                 </span>
@@ -91,8 +92,9 @@ function NavItemDesktop({ to, active, icon, label }: { to: string; active: boole
   return (
     <Link
       to={to}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-        active ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-1.5 px-2 lg:px-3 h-14 border-b-2 text-sm font-medium transition-colors whitespace-nowrap ${
+        active ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
       }`}
     >
       {icon}

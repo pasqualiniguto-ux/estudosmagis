@@ -132,16 +132,15 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <AppNavigation />
-      <main className="container py-6">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold text-foreground">Ciclo de Estudos</h1>
+      <main className="container py-6 md:py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-foreground">Ciclo de Estudos</h1>
         </div>
 
-<div className="mb-4" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Adicionar Bloco e Gerenciamento */}
-          <div className="col-span-1 border rounded-xl p-4 h-fit bg-card">
-            <h2 className="text-lg font-semibold mb-4">Adicionar ao Ciclo</h2>
+          <div className="col-span-1 border-b lg:border-b-0 lg:border-r pb-6 lg:pb-0 lg:pr-8 h-fit">
+            <h2 className="text-base font-medium mb-4">Adicionar ao Ciclo</h2>
             {subjects.length === 0 ? (
               <p className="text-sm text-muted-foreground">Adicione matérias na aba "Matérias" primeiro.</p>
             ) : (
@@ -176,10 +175,10 @@ export default function Index() {
           <div className="col-span-1 lg:col-span-2">
             <FixedCycleItems />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-              <h2 className="text-lg font-semibold text-center sm:text-left">Seu Ciclo (Ordem)</h2>
+              <h2 className="text-base font-medium text-center sm:text-left">Seu Ciclo (Ordem)</h2>
               <div className="flex items-center gap-2 self-center sm:self-auto">
-                <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border">
-                  Ciclos concluídos: <span className="text-foreground font-bold ml-1">{completedCyclesCount}</span>
+                <div className="text-xs text-muted-foreground py-1.5">
+                  Ciclos concluídos: <span className="text-foreground font-medium ml-1">{completedCyclesCount}</span>
                 </div>
                 {completedCyclesCount > 0 && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground border" onClick={() => setCompletedCyclesCount(0)} title="Zerar contagem">
@@ -189,7 +188,7 @@ export default function Index() {
               </div>
             </div>
             {cycleEntries.length === 0 ? (
-              <div className="border border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-muted-foreground">
+              <div className="border-y py-10 px-4 flex flex-col items-center justify-center text-muted-foreground">
                 <p>O seu ciclo está vazio.</p>
                 <p className="text-sm">Adicione blocos ao lado para começar seu ciclo de estudos!</p>
               </div>
@@ -210,13 +209,12 @@ export default function Index() {
                   return (
                     <div
                       key={entry.id}
-                      className={`relative flex flex-col gap-3 p-4 rounded-xl border transition-all ${
-                        isActive ? 'bg-primary/5 border-primary shadow-sm scale-[1.01]' : 'bg-card border-border hover:bg-muted/10'
+                      className={`relative flex flex-col gap-3 p-4 rounded-lg border transition-colors ${
+                        isActive ? 'bg-card border-primary/50' : 'bg-card border-border'
                       }`}
-                      style={subject?.color ? { borderLeft: `6px solid ${subject.color}` } : undefined}
                     >
                       {isActive && (
-                        <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
+                        <div className="self-start text-xs font-medium text-primary">
                           <span>Estudando</span>
                         </div>
                       )}
@@ -224,10 +222,10 @@ export default function Index() {
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="flex items-center justify-center bg-muted text-muted-foreground font-medium text-xs rounded-full h-5 w-5">
+                            <span className="flex items-center justify-center text-muted-foreground font-medium text-xs h-5 w-5 shrink-0">
                               {index + 1}
                             </span>
-                            <h3 className={`font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                            <h3 className="font-medium text-foreground break-words min-w-0">
                               {subject?.name || '—'}
                             </h3>
                           </div>
